@@ -1,9 +1,27 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="refresh" content="0; url=marketing%20Simulator%20v6.html" />
-    <title>Redirecting...</title>
-  </head>
-  <body></body>
+<head>
+<meta charset="UTF-8">
+<title>Access</title>
+<script>
+function checkPassword() {
+  var password = document.getElementById("password").value;
+  if (password === "soulriza") {
+    window.location.href = "marketing%20Simulator%20v6.html";
+  } else {
+    alert("パスワードが違います");
+  }
+}
+</script>
+</head>
+
+<body style="text-align:center;margin-top:100px;font-family:sans-serif;">
+
+<h2>SOULRiZA Simulator</h2>
+<p>パスワードを入力してください</p>
+
+<input type="password" id="password">
+<button onclick="checkPassword()">Enter</button>
+
+</body>
 </html>
