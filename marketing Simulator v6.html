@@ -60,6 +60,34 @@
             }
         }
 
+        /* 可読性向上のためのカスタムフォントサイズ */
+        :root {
+            font-size: 16px;
+        }
+
+        .heading-primary {
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        .section-title {
+            font-size: 22px;
+            line-height: 1.3;
+        }
+
+        .kpi-value {
+            font-size: 34px;
+            line-height: 1;
+        }
+
+        .body-text {
+            font-size: 16px;
+        }
+
+        .desc-text {
+            font-size: 15px;
+        }
+
         @media screen and (max-width: 768px) {
             .mobile-stack {
                 flex-direction: column !important;
@@ -110,6 +138,7 @@
                 padding: 4px 0 !important;
                 width: 100%;
                 border: none !important;
+                font-size: 14px !important;
             }
 
             .actual-table td::before {
@@ -126,6 +155,44 @@
                 flex-direction: column;
                 align-items: flex-end;
             }
+
+            .mobile-scroll-x {
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+                padding-bottom: 8px;
+            }
+
+            .mobile-snap-card {
+                scroll-snap-align: start;
+                flex: 0 0 280px;
+            }
+        }
+
+        .sticky-metrics {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            margin-left: -1 * 1.5rem;
+            margin-right: -1 * 1.5rem;
+            margin-top: -1 * 1rem;
+            padding: 1rem 1.5rem;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .actual-table {
+            width: 100%;
+            font-size: 14px;
         }
     </style>
 
@@ -138,7 +205,8 @@
       "imports": {
         "react": "https://esm.sh/react@18.2.0",
         "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "lucide-react": "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0"
+        "lucide-react": "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0",
+        "recharts": "https://esm.sh/recharts@2.12.0?deps=react@18.2.0"
       }
     }
   </script>
@@ -150,6 +218,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useMemo, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
+        import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
         import {
             TrendingUp,
             Users,
@@ -179,7 +248,9 @@
 
         const App = () => {
             const [selectedForecastCase, setSelectedForecastCase] = useState('case1');
+            const [activeCaseTab, setActiveCaseTab] = useState('case1');
             const [monthlyGrowthRate, setMonthlyGrowthRate] = useState(0.10);
+            const [cpiScaleFactor, setCpiScaleFactor] = useState(0.15);
 
             const [sectionVisibility, setSectionVisibility] = useState({
                 actuals: true,
@@ -220,13 +291,18 @@
             const [expandedMonths, setExpandedMonths] = useState(["2026-02"]);
             const toggleMonth = (m) => setExpandedMonths(p => p.includes(m) ? p.filter(x => x !== m) : [...p, m]);
 
-            const [expandedCases, setExpandedCases] = useState({ case1: true, case2: false, case3: false });
-            const toggleCase = (c) => setExpandedCases(p => ({ ...p, [c]: !p[c] }));
+            const [expandedSummaryFunnels, setExpandedSummaryFunnels] = useState({ case1: true, case2: true, case3: true });
+            const toggleSummaryFunnel = (c) => setExpandedSummaryFunnels(p => ({ ...p, [c]: !p[c] }));
+
+            const [expandedSummaryLevers, setExpandedSummaryLevers] = useState({ case1: false, case2: false, case3: false });
+            const toggleSummaryLevers = (c) => setExpandedSummaryLevers(p => ({ ...p, [c]: !p[c] }));
+
+            const updateField = (caseKey, field, val) => setCases(prev => ({ ...prev, [caseKey]: { ...prev[caseKey], [field]: val } }));
 
             const [cases, setCases] = useState({
-                case1: { name: 'Case 1 (直近実績ベース)', adSpend: 5000000, cpi: 850, regCvr: 0.30, ftueRate: 0.80, payRate: 0.15, arpu: 2000, retention: 8 },
-                case2: { name: 'Case 2 (改善モデル)', adSpend: 5000000, cpi: 500, regCvr: 0.40, ftueRate: 0.85, payRate: 0.18, arpu: 2500, retention: 10 },
-                case3: { name: 'Case 3 (理想モデル)', adSpend: 10000000, cpi: 350, regCvr: 0.50, ftueRate: 0.90, payRate: 0.20, arpu: 3000, retention: 12 },
+                case1: { name: 'Case 1: 直近実績', adSpend: 5000000, cpi: 850, regCvr: 0.30, ftueRate: 0.80, payRate: 0.15, arpu: 2000, retention: 8 },
+                case2: { name: 'Case 2: 改善モデル', adSpend: 5000000, cpi: 500, regCvr: 0.40, ftueRate: 0.85, payRate: 0.18, arpu: 2500, retention: 10 },
+                case3: { name: 'Case 3: 理想モデル', adSpend: 10000000, cpi: 350, regCvr: 0.50, ftueRate: 0.90, payRate: 0.20, arpu: 3000, retention: 12 },
             });
 
             const calculateMetrics = (params) => {
@@ -244,6 +320,24 @@
                 return { installs, registered, ftueUsers, paidUsers, monthlyRev, ltv, cac, ltvCac, payback, roas, unitProfit };
             };
 
+            const getImpactRanking = (params) => {
+                const base = calculateMetrics(params).monthlyRev;
+                const tests = [
+                    { name: "広告予算", field: "adSpend", delta: 1.05 },
+                    { name: "CPI", field: "cpi", delta: 0.95 },
+                    { name: "登録率（Install→Register）", field: "regCvr", delta: 1.05 },
+                    { name: "登録後チュートリアル完了率", field: "ftueRate", delta: 1.05 },
+                    { name: "課金転換率", field: "payRate", delta: 1.05 },
+                    { name: "ARPU", field: "arpu", delta: 1.05 },
+                    { name: "継続期間", field: "retention", delta: 1.05 }
+                ];
+                const impacts = tests.map(t => {
+                    const next = calculateMetrics({ ...params, [t.field]: params[t.field] * t.delta }).monthlyRev;
+                    return { name: t.name, diff: next - base };
+                }).sort((a, b) => b.diff - a.diff).slice(0, 3);
+                return impacts;
+            };
+
             const results = useMemo(() => ({
                 case1: calculateMetrics(cases.case1),
                 case2: calculateMetrics(cases.case2),
@@ -251,12 +345,7 @@
             }), [cases]);
 
             const formatUSD = (jpy) => `$${(jpy / 155).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-            const formatCurrency = (num) => (
-                <div className="inline-flex flex-col items-end leading-none currency-display">
-                    <span className="font-mono whitespace-nowrap">¥{Math.round(num || 0).toLocaleString()}</span>
-                    <span className="text-[8px] opacity-60 font-medium no-export-usd">{formatUSD(num)}</span>
-                </div>
-            );
+            const formatCurrency = (num) => `¥${Math.round(num || 0).toLocaleString()}`;
             const formatNum = (num) => Math.round(num || 0).toLocaleString();
 
             const handleExportPdf = () => window.print();
@@ -276,59 +365,81 @@
 
             const getDynamicAdvice = (key) => {
                 const res = results[key];
-                if (res.ltvCac < 2.0) {
-                    return `⚠️ LTV/CACが${res.ltvCac.toFixed(2)}と低いです。CPIの改善またはARPUの引き上げが急務です。`;
-                } else if (res.ltvCac < 3.5) {
-                    return `💡 良好な効率です。さらにチャーン率を下げる（継続月数を伸ばす）ことで、利益率が劇的に向上します。`;
-                } else {
-                    return `✅ 素晴らしい投資効率です。この単価感であれば広告予算を増強し、シェア獲得を一気に進めるべきタイミングです。`;
+                const isHealthy = res.ltvCac >= 3.0;
+
+                if (key === 'case1') {
+                    if (res.ltvCac < 2.0) return "直近の実績ベース。LTV/CACは2.0を下回っており、このままの拡大はハイリスクな状態。";
+                    return "直近実績ベース。現在の効率を維持しつつ、レバーの微調整で3.0超えを目指しましょう。";
                 }
+
+                if (key === 'case2') {
+                    if (isHealthy) return "主要レバー（CPI・登録率・課金率）を改善したシナリオ。積極的な投資が可能な健全フェーズです。";
+                    return "主要レバーを改善したシナリオ。LTV/CACが3.0に届かない場合、さらなる転換率向上が不可欠です。";
+                }
+
+                if (key === 'case3') {
+                    if (res.ltvCac > 6.0) return "理想的な成長モデル。最優先で改善項目をクリアし、一気に広告アクセルを踏むべき極めて高い効率。";
+                    return "理想的な成長モデル。現状でも高い効率ですが、ARPU向上によりさらにスケールが加速します。";
+                }
+
+                return "ユニットエコノミクスを注視し、LTV/CAC 3.0以上を目安に投資判断を行ってください。";
             };
 
             const monthlyForecastData = useMemo(() => {
                 const months = ["03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
                 const baseCfg = cases[selectedForecastCase];
-                const baseResults = results[selectedForecastCase];
                 let currentSpend = baseCfg.adSpend;
                 let activePaidUsers = 0;
                 let cumulativePaidUsers = 0;
                 const churnRate = 1 / (baseCfg.retention || 1);
+
                 return months.map((m, index) => {
                     const isMonetized = parseInt(m) >= 5;
                     if (index > 0) currentSpend = currentSpend * (1 + monthlyGrowthRate);
-                    const factor = currentSpend / baseCfg.adSpend;
-                    const newPaidUsers = baseResults.paidUsers * factor;
+
+                    const spendRatio = currentSpend / baseCfg.adSpend;
+                    const effectiveCPI = baseCfg.cpi * (1 + (spendRatio - 1) * cpiScaleFactor);
+
+                    const monthResults = calculateMetrics({ ...baseCfg, adSpend: currentSpend, cpi: effectiveCPI });
+
+                    const newPaidUsers = monthResults.paidUsers;
                     activePaidUsers = (activePaidUsers * (1 - churnRate)) + newPaidUsers;
                     cumulativePaidUsers += newPaidUsers;
+
                     return {
-                        month: `2026/${m}`,
+                        month: index === 0 ? "3月" : index === 1 ? "4月" : `${parseInt(m)}月`,
+                        label: `${m}`,
                         spend: currentSpend,
                         revenue: isMonetized ? (activePaidUsers * baseCfg.arpu) : 0,
-                        installs: baseResults.installs * factor,
-                        regs: baseResults.registered * factor,
+                        installs: monthResults.installs,
+                        regs: monthResults.registered,
                         paid: activePaidUsers,
                         cumulative: cumulativePaidUsers,
                         isMonetized
                     };
                 });
-            }, [selectedForecastCase, cases, results, monthlyGrowthRate]);
+            }, [selectedForecastCase, cases, results, monthlyGrowthRate, cpiScaleFactor]);
 
             const getFullYearTotal = (caseKey) => {
                 const cfg = cases[caseKey];
-                const res = results[caseKey];
                 const churnRate = 1 / (cfg.retention || 1);
                 const janFebSpend = actualData["2026-01"].total.spend + actualData["2026-02"].total.spend;
                 let totalRev = 0;
                 let totalSpend = janFebSpend;
                 let activePaid = 0;
                 let currentMonthSpend = cfg.adSpend;
+
                 for (let i = 0; i < 10; i++) {
                     const monthNum = i + 3;
                     const isMonetized = monthNum >= 5;
                     if (i > 0) currentMonthSpend = currentMonthSpend * (1 + monthlyGrowthRate);
-                    const factor = currentMonthSpend / cfg.adSpend;
-                    const newPaid = res.paidUsers * factor;
-                    activePaid = (activePaid * (1 - churnRate)) + newPaid;
+
+                    const spendRatio = currentMonthSpend / cfg.adSpend;
+                    const effectiveCPI = cfg.cpi * (1 + (spendRatio - 1) * cpiScaleFactor);
+
+                    const monthData = calculateMetrics({ ...cfg, adSpend: currentMonthSpend, cpi: effectiveCPI });
+                    activePaid = (activePaid * (1 - churnRate)) + monthData.paidUsers;
+
                     totalSpend += currentMonthSpend;
                     if (isMonetized) totalRev += (activePaid * cfg.arpu);
                 }
@@ -356,25 +467,25 @@
                 );
             };
 
-            const FunnelVisual = ({ res }) => {
+            const FunnelVisual = ({ res, hideHeader = false, compact = false }) => {
                 const stages = [
-                    { label: "Install", val: res.installs, color: "bg-indigo-400" },
-                    { label: "Register", val: res.registered, color: "bg-indigo-500" },
-                    { label: "Tutorial", val: res.ftueUsers, color: "bg-indigo-600" },
-                    { label: "Pay", val: res.paidUsers, color: "bg-rose-500" }
+                    { label: "インストール", val: res.installs, color: "bg-indigo-400" },
+                    { label: "ユーザー登録", val: res.registered, color: "bg-indigo-500" },
+                    { label: "チュート完了", val: res.ftueUsers, color: "bg-indigo-600" },
+                    { label: "有料課金", val: res.paidUsers, color: "bg-rose-500" }
                 ];
                 const max = res.installs || 1;
                 return (
-                    <div className="space-y-3 pt-2">
-                        <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1"><Layers size={12} /> コンバージョン・ファネル</p>
-                        <div className="space-y-1.5">
+                    <div className={`${compact ? 'space-y-2 pt-1' : 'space-y-3 pt-2'}`}>
+                        {!hideHeader && <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1"><Layers size={12} /> コンバージョン・ファネル</p>}
+                        <div className={`${compact ? 'space-y-1' : 'space-y-1.5'}`}>
                             {stages.map((s, i) => (
                                 <div key={i} className="space-y-1">
-                                    <div className="flex justify-between text-[9px] font-black uppercase text-slate-400">
+                                    <div className={`flex justify-between ${compact ? 'text-[11px]' : 'text-[12px]'} font-black uppercase text-slate-400`}>
                                         <span>{s.label}</span>
                                         <span>{formatNum(s.val)} ({((s.val / max) * 100).toFixed(1)}%)</span>
                                     </div>
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div className={`${compact ? 'h-2' : 'h-2.5'} w-full bg-slate-100 rounded-full overflow-hidden`}>
                                         <div className={`h-full ${s.color} transition-all duration-500`} style={{ width: `${(s.val / max) * 100}%` }}></div>
                                     </div>
                                 </div>
@@ -385,28 +496,68 @@
             };
 
             return (
-                <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-indigo-600 rounded-2xl text-white">
-                                <Activity size={24} />
+                <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500 body-text">
+                    <div className="flex flex-col gap-6">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-3xl shadow-sm border border-slate-200">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-indigo-600 rounded-2xl text-white">
+                                    <Activity size={24} />
+                                </div>
+                                <div className="shrink-0">
+                                    <h1 className="heading-primary font-black text-slate-900 leading-tight">SOULRiZA Growth Simulator</h1>
+                                    <p className="text-indigo-500 desc-text font-bold flex items-center gap-1">
+                                        アプリグロースのKPIとユニットエコノミクスをシミュレーションするツール
+                                    </p>
+                                </div>
                             </div>
-                            <div className="shrink-0">
-                                <h1 className="text-xl font-black text-slate-900 leading-tight">SOULRiZA Growth</h1>
-                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                                    <History size={12} /> Strategic Simulator
-                                </p>
+                            <div className="flex flex-col md:flex-row gap-2 no-export w-full md:w-auto">
+                                <button onClick={handleExportPdf} className="flex items-center gap-2 bg-slate-800 hover:bg-black text-white px-6 py-2.5 rounded-2xl font-bold transition-all mobile-btn shadow-md active:scale-95"><TableIcon size={18} /> PDFエクスポート</button>
                             </div>
                         </div>
-                        <div className="flex flex-col md:flex-row gap-2 no-export w-full md:w-auto">
-                            <button onClick={handleExportPdf} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-2.5 rounded-2xl font-bold border border-slate-200 transition-all mobile-btn"><TableIcon size={18} /> PDFエクスポート</button>
+
+                        {/* ツール説明セクション */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 no-export">
+                            <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                                <h3 className="section-title font-black text-slate-800 uppercase flex items-center gap-2">
+                                    <HelpCircle size={18} className="text-indigo-500" /> このシミュレーターについて
+                                </h3>
+                                <div className="space-y-4 desc-text text-slate-600 font-medium leading-relaxed">
+                                    <p>
+                                        このツールでは、広告 → インストール → 登録 → 課金 → LTV / CAC までのグロースファネルをもとに、アプリ事業の成長シナリオをシミュレーションできます。
+                                    </p>
+                                    <div className="grid grid-cols-1 gap-1">
+                                        <p className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />この広告予算でどれくらいMRR（売上）が出るのか</p>
+                                        <p className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />LTV / CAC的に事業が成立するか</p>
+                                        <p className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />どのKPI（CPI / 登録率 / 課金率など）を改善すれば成長するか</p>
+                                        <p className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />目標売上を達成するために必要な改善量</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-indigo-50/50 p-4 rounded-3xl border border-indigo-100 shadow-sm space-y-3">
+                                <h3 className="section-title font-black text-indigo-900 uppercase flex items-center gap-2">
+                                    <Settings2 size={18} className="text-indigo-600" /> 使い方
+                                </h3>
+                                <div className="space-y-3 desc-text text-indigo-800 font-bold">
+                                    <div className="flex gap-3">
+                                        <span className="flex-shrink-0 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px]">1</span>
+                                        <p>実績データをもとにCase1（現状）を設定</p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <span className="flex-shrink-0 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px]">2</span>
+                                        <p>KPIレバー（CPI / CVR / 課金率など）を調整</p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <span className="flex-shrink-0 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center text-[10px]">3</span>
+                                        <p>改善シナリオを比較して、最も効果の高いグロース施策を検討する</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* 実績ダッシュボード */}
                     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-6 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('actuals')}>
-                            <h2 className="text-sm font-black text-slate-800 uppercase flex items-center gap-2"><History size={16} /> 直近の実績データ</h2>
+                        <div className="p-4 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('actuals')}>
+                            <h2 className="section-title font-black text-slate-800 uppercase flex items-center gap-2"><History size={16} /> 直近の実績データ</h2>
                             {sectionVisibility.actuals ? <ChevronDown size={18} /> : <ChevronRightIcon size={18} />}
                         </div>
                         {sectionVisibility.actuals && (
@@ -418,7 +569,9 @@
                                             <th className="pb-3 text-right">費用</th>
                                             <th className="pb-3 text-right">クリック</th>
                                             <th className="pb-3 text-right">DL数</th>
+                                            <th className="pb-3 text-right">インストール率</th>
                                             <th className="pb-3 text-right">CPI</th>
+                                            <th className="pb-3 text-right text-slate-600 uppercase font-black">登録率</th>
                                             <th className="pb-3 text-right font-black text-slate-600 uppercase">登録数</th>
                                             <th className="pb-3 text-right uppercase">登録CPA</th>
                                         </tr>
@@ -431,7 +584,9 @@
                                                     <td className="py-4 text-right font-mono" data-label="費用">{formatCurrency(data.total.spend)}</td>
                                                     <td className="py-4 text-right font-mono" data-label="クリック">{formatNum(data.total.clicks)}</td>
                                                     <td className="py-4 text-right font-mono font-bold" data-label="DL数">{formatNum(data.total.installs)}</td>
+                                                    <td className="py-4 text-right font-mono text-slate-400" data-label="インストール率">{data.total.instRate.toFixed(2)}%</td>
                                                     <td className="py-4 text-right font-black" data-label="CPI">{formatCurrency(data.total.cpi)}</td>
+                                                    <td className="py-4 text-right font-mono text-indigo-400 font-bold" data-label="登録率">{data.total.regRate.toFixed(2)}%</td>
                                                     <td className="py-4 text-right font-mono font-black text-indigo-600" data-label="登録数">{formatNum(data.total.regs)}</td>
                                                     <td className="py-4 text-right text-indigo-600 font-bold" data-label="登録CPA">{formatCurrency(data.total.regCpa)}</td>
                                                 </tr>
@@ -441,7 +596,9 @@
                                                         <td className="py-3 text-right font-mono" data-label="費用">{formatCurrency(item.spend)}</td>
                                                         <td className="py-3 text-right font-mono" data-label="クリック">{formatNum(item.clicks)}</td>
                                                         <td className="py-3 text-right font-mono" data-label="DL数">{formatNum(item.installs)}</td>
+                                                        <td className="py-3 text-right font-mono text-slate-300" data-label="インストール率">{item.instRate.toFixed(2)}%</td>
                                                         <td className="py-3 text-right font-mono" data-label="CPI">{item.cpi > 0 ? formatCurrency(item.cpi) : "-"}</td>
+                                                        <td className="py-3 text-right font-mono text-indigo-200" data-label="登録率">{item.regRate.toFixed(2)}%</td>
                                                         <td className="py-3 text-right font-mono font-bold" data-label="登録数">{formatNum(item.regs)}</td>
                                                         <td className="py-3 text-right font-mono" data-label="登録CPA">{item.regCpa > 0 ? formatCurrency(item.regCpa) : "-"}</td>
                                                     </tr>
@@ -454,114 +611,183 @@
                         )}
                     </div>
 
-                    {/* シミュレーション設定エリア */}
+                    {/* 成長シナリオ比較エリア */}
                     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-5 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('cases')}>
+                        <div className="p-4 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('cases')}>
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600"><Settings2 size={24} /></div>
                                 <div>
-                                    <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">シミュレーション設定</h2>
-                                    <p className="text-[10px] text-slate-400 font-bold">パラメータ調整・比較</p>
+                                    <h2 className="section-title font-black text-slate-800 uppercase tracking-tight leading-none mb-1">成長シナリオ比較</h2>
+                                    <p className="desc-text text-slate-400 font-bold whitespace-normal">広告効率やCVRなどのKPIを調整して複数の成長シナリオを比較できます</p>
                                 </div>
                             </div>
                             {sectionVisibility.cases ? <ChevronDown size={18} /> : <ChevronRightIcon size={18} />}
                         </div>
 
                         {sectionVisibility.cases && (
-                            <div className="px-5 pb-5 flex flex-col gap-6">
-                                <div className="flex flex-col md:flex-row justify-end no-export">
-                                    <button onClick={copyActualsToCase1} className="flex items-center gap-2 bg-slate-800 hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 mobile-btn"><History size={16} /> 実績(2月)をCase 1にコピー</button>
-                                </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mobile-gap-16">
-                                    {Object.entries(cases).map(([key, config]) => {
-                                        const res = results[key];
-                                        const isHealthy = res.ltvCac >= 3.0;
-                                        const updateField = (field, val) => setCases(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } }));
-                                        const baseRes = results['case1'];
-                                        const isBase = key === 'case1';
-                                        const getDiff = (current, base) => (!base || base === 0) ? 0 : ((current - base) / base) * 100;
-                                        const revDiff = isBase ? 0 : getDiff(res.monthlyRev, baseRes.monthlyRev);
-                                        const cacDiff = isBase ? 0 : getDiff(res.cac, baseRes.cac);
-                                        const ltvDiff = isBase ? 0 : getDiff(res.ltv, baseRes.ltv);
-                                        const renderDiff = (diff, isBadPositive) => {
-                                            if (diff === 0) return <span className="text-slate-400">-</span>;
-                                            const sign = diff > 0 ? '+' : '';
-                                            const color = isBadPositive ? (diff > 0 ? 'text-rose-500' : 'text-green-500') : (diff > 0 ? 'text-green-500' : 'text-rose-500');
-                                            return <span className={`text-[10px] font-black ${color}`}>{sign}{diff.toFixed(0)}%</span>;
-                                        };
+                            <div className="px-5 pb-5 flex flex-col gap-8">
+                                {/* 1) Case比較サマリー（横3カラム） */}
+                                <div className="space-y-4">
+                                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 px-1">
+                                        <div>
+                                            <h3 className="text-sm font-black text-slate-800 uppercase flex items-center gap-2"><Layers size={16} className="text-indigo-500" /> Case比較（サマリー）</h3>
+                                            <p className="text-[10px] text-slate-400 font-bold mt-0.5">まずサマリーで差分を比較 → クリックで詳細を確認できます</p>
+                                        </div>
+                                        <button onClick={copyActualsToCase1} className="flex items-center gap-2 bg-slate-800 hover:bg-black text-white px-4 py-2 rounded-xl text-[10px] font-bold transition-all shadow-md active:scale-95 no-export"><History size={14} /> 実績(2月)をCase 1にコピー</button>
+                                    </div>
 
-                                        return (
-                                            <div key={key} className="bg-white rounded-3xl border border-slate-200 overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 mobile-full">
-                                                <div className={`h-2 ${key === 'case1' ? 'bg-slate-300' : key === 'case2' ? 'bg-indigo-400' : 'bg-indigo-600'}`}></div>
-                                                <div className="space-y-5 flex-1 p-6 mobile-p-16">
-                                                    <h3 className="font-black text-slate-800 tracking-tight">{config.name}</h3>
-                                                    <div className={`text-center py-4 rounded-2xl border ${isHealthy ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                                                        <p className={`text-[10px] font-bold uppercase mb-0.5 ${isHealthy ? 'text-green-600' : 'text-red-500'}`}>LTV / CAC</p>
-                                                        <p className="text-[8px] text-slate-400 font-bold mb-1 leading-none">顧客生涯価値 (LTV) ÷ 顧客獲得コスト (CAC)</p>
-                                                        <p className={`text-3xl font-black leading-none my-2 ${isHealthy ? 'text-green-700' : 'text-red-600'}`}>{res.ltvCac.toFixed(2)}</p>
-                                                        <div className="flex justify-center mb-3">
-                                                            {res.ltvCac < 1.0 ? <span className="bg-red-100 text-red-700 text-[10px] font-black px-3 py-1 rounded-full">❌ 不成立</span> : res.ltvCac < 3.0 ? <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-full">△ 微妙</span> : res.ltvCac < 6.0 ? <span className="bg-green-100 text-green-700 text-[10px] font-black px-3 py-1 rounded-full">○ 成立</span> : <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full">◎ スケール可能</span>}
-                                                        </div>
-                                                        <div className="grid grid-cols-2 border-t border-slate-100 mt-2 pt-3">
-                                                            <div className="border-r border-slate-100"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">回収期間</p><p className="text-sm font-black text-slate-700">{res.payback.toFixed(1)}<span className="text-[10px] ml-0.5">ヶ月</span></p></div>
-                                                            <div><p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">1人利益</p><p className={`text-sm font-black ${res.unitProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>{formatCurrency(res.unitProfit)}</p></div>
+                                    <div className="flex flex-row md:grid md:grid-cols-3 gap-3 overflow-x-auto no-scrollbar snap-x pb-2 mobile-scroll-x">
+                                        {Object.entries(cases).map(([key, config]) => {
+                                            const res = results[key];
+                                            const baseRes = results['case1'];
+                                            const isBase = key === 'case1';
+                                            const isHealthy = res.ltvCac >= 3.0;
+
+                                            const getDiffVal = (current, base) => (!base || base === 0) ? 0 : ((current - base) / base) * 100;
+                                            const renderSummaryDiff = (current, base, isBadPositive) => {
+                                                if (isBase) return null;
+                                                const diff = getDiffVal(current, base);
+                                                if (Math.abs(diff) < 0.1) return null;
+                                                const color = isBadPositive ? (diff > 0 ? 'text-rose-500' : 'text-green-500') : (diff > 0 ? 'text-green-500' : 'text-rose-500');
+                                                return <span className={`text-[10px] font-black ${color} ml-1`}>({diff > 0 ? '+' : ''}{diff.toFixed(0)}%)</span>;
+                                            };
+
+                                            const adviceText = getDynamicAdvice(key);
+
+                                            return (
+                                                <div
+                                                    key={key}
+                                                    onClick={() => { setActiveCaseTab(key); }}
+                                                    className={`mobile-snap-card min-w-[320px] md:min-w-0 p-[14px] rounded-3xl border-2 transition-all cursor-pointer flex flex-col gap-[10px] group/card ${activeCaseTab === key ? 'border-indigo-500 bg-indigo-50/20 shadow-lg' : 'border-slate-100 bg-white hover:border-slate-200 shadow-sm'}`}
+                                                >
+                                                    <div className="flex justify-between items-center shrink-0">
+                                                        <span className={`text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-tighter ${key === 'case1' ? 'bg-slate-100 text-slate-500' : key === 'case2' ? 'bg-indigo-100 text-indigo-600' : 'bg-indigo-600 text-white'}`}>{config.name}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            {res.ltvCac < 1.0 ? <span className="text-rose-600 text-[11px] font-black">❌ 不成立</span> : res.ltvCac < 3.0 ? <span className="text-amber-600 text-[11px] font-black">△ 微妙</span> : res.ltvCac < 6.0 ? <span className="text-green-600 text-[11px] font-black">○ 成立</span> : <span className="text-indigo-600 text-[11px] font-black">◎ スケール可能</span>}
                                                         </div>
                                                     </div>
-                                                    {!isBase && (
-                                                        <div className="flex justify-between items-center bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
-                                                            <span className="text-[10px] font-bold text-slate-500 uppercase">vs Case 1</span>
-                                                            <div className="flex gap-4">
-                                                                <div className="flex flex-col items-end"><span className="text-[9px] text-slate-400 uppercase leading-none">売上</span>{renderDiff(revDiff, false)}</div>
-                                                                <div className="flex flex-col items-end"><span className="text-[9px] text-slate-400 uppercase leading-none">CAC</span>{renderDiff(cacDiff, true)}</div>
-                                                                <div className="flex flex-col items-end"><span className="text-[9px] text-slate-400 uppercase leading-none">LTV</span>{renderDiff(ltvDiff, false)}</div>
+
+                                                    <div className="text-center py-1 border-b border-slate-50 shrink-0">
+                                                        <p className="text-[11px] font-black text-slate-400 uppercase leading-tight">LTV / CAC</p>
+                                                        <p className="kpi-value font-black leading-none my-0.5" style={{ color: isHealthy ? '#15803d' : '#e11d48' }}>{res.ltvCac.toFixed(2)}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase mobile-hide">顧客生涯価値 ÷ 獲得コスト</p>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-3 gap-[6px] shrink-0">
+                                                        <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">月次売上</p>
+                                                            <p className="text-[13px] font-black text-slate-700 leading-tight">{formatCurrency(res.monthlyRev)}</p>
+                                                            {renderSummaryDiff(res.monthlyRev, baseRes.monthlyRev, false)}
+                                                        </div>
+                                                        <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">獲得単価(CAC)</p>
+                                                            <p className="text-[13px] font-black text-slate-700 leading-tight">{formatCurrency(res.cac)}</p>
+                                                            {renderSummaryDiff(res.cac, baseRes.cac, true)}
+                                                        </div>
+                                                        <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
+                                                            <p className="text-[10px] font-bold text-indigo-400 uppercase mb-0.5">LTV</p>
+                                                            <p className="text-[13px] font-black text-indigo-700 leading-tight">{formatCurrency(res.ltv)}</p>
+                                                            {renderSummaryDiff(res.ltv, baseRes.ltv, false)}
+                                                        </div>
+                                                        <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">ARPU</p>
+                                                            <p className="text-[13px] font-black text-slate-700 leading-tight">¥{formatNum(config.arpu)}</p>
+                                                        </div>
+                                                        <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">継続期間</p>
+                                                            <p className="text-[13px] font-black text-slate-700 leading-tight">{config.retention}ヶ月</p>
+                                                        </div>
+                                                        <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">回収期間</p>
+                                                            <p className="text-[13px] font-black text-slate-700 leading-tight">{res.payback.toFixed(1)}ヶ月</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm shrink-0">
+                                                        <div className="flex justify-between items-center mb-2 border-b border-slate-50 pb-1.5">
+                                                            <div className="flex items-center gap-1.5 ">
+                                                                <Settings2 size={14} className="text-indigo-500" />
+                                                                <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">改善レバー（主要KPIを作る変数）</span>
                                                             </div>
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); toggleSummaryLevers(key); }}
+                                                                className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase transition-all ${expandedSummaryLevers[key] ? 'bg-slate-100 text-slate-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                                                            >
+                                                                {expandedSummaryLevers[key] ? '編集を閉じる' : 'レバーを編集'}
+                                                            </button>
                                                         </div>
-                                                    )}
-                                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
-                                                        <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">初月ROAS / 回収率</p>
-                                                        <p className={`text-xl font-black ${res.roas >= 100 ? 'text-green-600' : 'text-amber-500'}`}>{res.roas.toFixed(0)}%</p>
-                                                        <p className="text-[8px] text-slate-400 font-bold mt-1 leading-none">{res.roas < 15 ? "回収が遅い" : res.roas < 100 ? "LTV回収前提" : "初月で原価回収済"}</p>
-                                                    </div>
-                                                    <div className="pt-2">
-                                                        <div className="flex justify-between items-center p-2 bg-indigo-50/50 rounded-xl cursor-pointer hover:bg-indigo-100/50 transition-colors no-export" onClick={() => toggleCase(key)}>
-                                                            <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1"><Settings2 size={12} /> コントロール (レバー)</p>
-                                                            {expandedCases[key] ? <ChevronDown size={14} className="text-indigo-400" /> : <ChevronRightIcon size={14} className="text-indigo-400" />}
-                                                        </div>
-                                                        {expandedCases[key] && (
-                                                            <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-top-2 no-export">
-                                                                <StepSlider label="広告予算" value={config.adSpend} min={500000} max={20000000} step={500000} suffix="円" onChange={v => updateField('adSpend', v)} />
-                                                                <StepSlider label="CPI" value={config.cpi} min={200} max={2000} step={50} suffix="円" onChange={v => updateField('cpi', v)} />
-                                                                <StepSlider label="登録CVR" value={config.regCvr} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField('regCvr', v)} />
-                                                                <StepSlider label="FTUE率" value={config.ftueRate} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField('ftueRate', v)} />
-                                                                <StepSlider label="課金転換率" value={config.payRate} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField('payRate', v)} />
-                                                                <StepSlider label="平均継続期間" value={config.retention} min={1} max={24} step={1} suffix="ヶ月" onChange={v => updateField('retention', v)} />
-                                                                <StepSlider label="ARPU (客単価)" value={config.arpu} min={500} max={20000} step={100} suffix="円" onChange={v => updateField('arpu', v)} />
+
+                                                        {expandedSummaryLevers[key] ? (
+                                                            <div className="space-y-4 py-2 animate-in fade-in slide-in-from-top-2 duration-300 no-export">
+                                                                <StepSlider label="広告予算" value={config.adSpend} min={500000} max={20000000} step={500000} suffix="円" onChange={v => updateField(key, 'adSpend', v)} />
+                                                                <StepSlider label="CPI" value={config.cpi} min={200} max={2000} step={50} suffix="円" onChange={v => updateField(key, 'cpi', v)} />
+                                                                <StepSlider label="登録率" value={config.regCvr} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField(key, 'regCvr', v)} />
+                                                                <StepSlider label="登録後チュートリアル完了率" value={config.ftueRate} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField(key, 'ftueRate', v)} />
+                                                                <StepSlider label="課金転換率" value={config.payRate} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField(key, 'payRate', v)} />
+                                                                <StepSlider label="平均継続期間" value={config.retention} min={1} max={24} step={1} suffix="ヶ月" onChange={v => updateField(key, 'retention', v)} />
+                                                                <StepSlider label="ARPU (客単価)" value={config.arpu} min={500} max={20000} step={100} suffix="円" onChange={v => updateField(key, 'arpu', v)} />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-2 text-center">
+                                                                <div className="flex justify-center gap-3 text-[12px] font-medium text-slate-400 flex-wrap">
+                                                                    <span>予算:<span className="text-[14px] font-black text-indigo-600 ml-0.5">{Math.round(config.adSpend / 10000)}万</span></span>
+                                                                    <span>CPI:<span className="text-[14px] font-black text-indigo-600 ml-0.5">¥{config.cpi}</span></span>
+                                                                    <span>登録率:<span className="text-[14px] font-black text-indigo-600 ml-0.5">{(config.regCvr * 100).toFixed(0)}%</span></span>
+                                                                    <span>課金転換率:<span className="text-[14px] font-black text-rose-600 ml-0.5">{(config.payRate * 100).toFixed(0)}%</span></span>
+                                                                </div>
+                                                                <div className="flex justify-center gap-3 text-[12px] font-medium text-slate-400 border-t border-slate-50 pt-1 flex-wrap">
+                                                                    <span>登録後チュート完了率:<span className="text-[14px] font-black text-indigo-500 ml-0.5">{(config.ftueRate * 100).toFixed(0)}%</span></span>
+                                                                    <span>ARPU:<span className="text-[14px] font-black text-indigo-500 ml-0.5">¥{formatNum(config.arpu)}</span></span>
+                                                                    <span>継続期間:<span className="text-[14px] font-black text-indigo-500 ml-0.5">{config.retention}ヶ月</span></span>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <div className="pt-4 border-t border-slate-200">
-                                                        <p className="text-[10px] font-black text-rose-500 uppercase flex items-center gap-1 mb-3"><BarChart3 size={12} /> シミュレーション結果</p>
-                                                        <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-50 p-3 rounded-2xl">
-                                                            <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none truncate">DL数</p><p className="text-sm font-black">{formatNum(res.installs)}</p></div>
-                                                            <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none truncate">登録</p><p className="text-sm font-black">{formatNum(res.registered)}</p></div>
-                                                            <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none truncate">FTUE</p><p className="text-sm font-black">{formatNum(res.ftueUsers)}</p></div>
-                                                            <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none truncate">課金</p><p className="text-sm font-black text-rose-600">{formatNum(res.paidUsers)}</p></div>
+
+                                                    <div className="space-y-2 shrink-0">
+                                                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100 pb-1">
+                                                            <span>シミュレーション実数</span>
+                                                            <Layers size={14} />
                                                         </div>
-                                                        <div className="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-xl">
-                                                            <div className="flex justify-between items-center text-xs w-full"><div className="flex flex-col"><span className="font-bold text-slate-400 uppercase">MRR</span><span className="text-[7px] text-slate-300 font-bold leading-none">課金者×ARPU</span></div><span className="font-black text-indigo-700">{formatCurrency(res.monthlyRev)}</span></div>
-                                                            <div className="flex justify-between items-center text-xs w-full"><span className="font-bold text-slate-400 uppercase">CAC</span><span className="font-black text-rose-600">{formatCurrency(res.cac)}</span></div>
-                                                            <div className="flex justify-between items-center text-xs w-full"><span className="font-bold text-slate-400 uppercase">LTV</span><span className="font-black text-indigo-700">{formatCurrency(res.ltv)}</span></div>
+                                                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                                                            <div className="flex justify-between items-center"><span className="text-[11px] font-bold text-slate-400 uppercase">インストール数</span><span className="text-[14px] font-black text-slate-700">{formatNum(res.installs)}</span></div>
+                                                            <div className="flex justify-between items-center"><span className="text-[11px] font-bold text-slate-400 uppercase">登録者数</span><span className="text-[14px] font-black text-slate-700">{formatNum(res.registered)}</span></div>
+                                                            <div className="flex justify-between items-center"><span className="text-[11px] font-bold text-slate-400 uppercase">完了数</span><span className="text-[14px] font-black text-slate-700">{formatNum(res.ftueUsers)}</span></div>
+                                                            <div className="flex justify-between items-center"><span className="text-[11px] font-bold text-rose-400 uppercase">課金者数</span><span className="text-[14px] font-black text-rose-600">{formatNum(res.paidUsers)}</span></div>
                                                         </div>
-                                                        <FunnelVisual res={res} />
                                                     </div>
-                                                    <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex gap-2 items-start no-export-summary">
-                                                        <MessageSquare size={14} className="text-indigo-500 shrink-0 mt-0.5" />
-                                                        <p className="text-[10px] leading-relaxed text-indigo-800 font-bold">{getDynamicAdvice(key)}</p>
+
+                                                    <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100/50 shrink-0">
+                                                        <div className="flex justify-between items-center cursor-pointer select-none" onClick={(e) => { e.stopPropagation(); toggleSummaryFunnel(key); }}>
+                                                            <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1"><Layers size={14} /> コンバージョン・ファネル</p>
+                                                            {expandedSummaryFunnels[key] ? <ChevronDown size={14} className="text-indigo-400" /> : <ChevronRightIcon size={14} className="text-indigo-400" />}
+                                                        </div>
+                                                        {expandedSummaryFunnels[key] && (
+                                                            <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+                                                                <FunnelVisual res={res} hideHeader compact />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="space-y-2 mt-auto">
+                                                        <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100">
+                                                            <div className="flex gap-2 items-start">
+                                                                <MessageSquare size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                                                                <p className="text-[12px] leading-[1.35] text-indigo-900 font-bold">{adviceText}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); toggleSummaryLevers(key); }}
+                                                            className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-[12px] font-black uppercase transition-all shadow-md active:scale-95 no-export ${expandedSummaryLevers[key] ? 'bg-slate-100 text-slate-600' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                                                        >
+                                                            <Settings2 size={14} /> {expandedSummaryLevers[key] ? '編集を閉じる' : '詳細を編集'}
+                                                        </button>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -569,24 +795,42 @@
 
                     {/* 4. Forecast Section */}
                     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="p-8 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('forecast')}>
-                            <h2 className="text-lg font-black text-slate-800 uppercase flex items-center gap-3"><TableIcon size={24} className="text-indigo-600" /> 2026年 収益・成長予測</h2>
+                        <div className="p-4 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('forecast')}>
+                            <h2 className="section-title font-black text-slate-800 uppercase flex items-center gap-3"><TableIcon size={24} className="text-indigo-600" /> 2026年 通期成長シミュレーション</h2>
                             {sectionVisibility.forecast ? <ChevronDown size={18} /> : <ChevronRightIcon size={18} />}
                         </div>
                         {sectionVisibility.forecast && (
                             <div className="px-8 pb-8 flex flex-col gap-6">
-                                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100 no-export">
+                                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 no-export">
                                     <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm border border-slate-200 mobile-full">
                                         {['case1', 'case2', 'case3'].map(key => (
-                                            <button key={key} onClick={() => setSelectedForecastCase(key)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all flex-1 ${selectedForecastCase === key ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{cases[key].name.split(' ')[1]}</button>
+                                            <button key={key} onClick={() => setSelectedForecastCase(key)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all flex-1 ${selectedForecastCase === key ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{cases[key].name.split(':')[0]}</button>
                                         ))}
                                     </div>
-                                    <div className="flex items-center gap-3 px-2 mobile-full">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest shrink-0">予算成長率</span>
-                                        <input type="range" min="0" max="50" step="1" value={monthlyGrowthRate * 100} onChange={e => setMonthlyGrowthRate(parseFloat(e.target.value) / 100)} className="w-full md:w-24 h-1 appearance-none bg-slate-200 accent-indigo-600 rounded-full" />
-                                        <span className="text-xs font-black text-indigo-600 shrink-0">{Math.round(monthlyGrowthRate * 100)}%</span>
+                                    <div className="flex flex-col md:flex-row flex-1 gap-4 px-2">
+                                        <div className="flex-1 space-y-1">
+                                            <div className="flex justify-between items-end">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">予算成長率 (MoM)</span>
+                                                    <span className="text-[8px] text-slate-400 font-bold leading-none">毎月の広告費が{Math.round(monthlyGrowthRate * 100)}%ずつ増加</span>
+                                                </div>
+                                                <span className="text-xs font-black text-indigo-600">{Math.round(monthlyGrowthRate * 100)}%</span>
+                                            </div>
+                                            <input type="range" min="0" max="50" step="1" value={monthlyGrowthRate * 100} onChange={e => setMonthlyGrowthRate(parseFloat(e.target.value) / 100)} className="w-full h-1 appearance-none bg-slate-200 accent-indigo-600 rounded-full" />
+                                        </div>
+                                        <div className="flex-1 space-y-1 border-l border-slate-200 pl-4">
+                                            <div className="flex justify-between items-end">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CPI悪化係数</span>
+                                                    <span className="text-[8px] text-slate-400 font-bold leading-none">予算増強時の獲得単価上昇リスク</span>
+                                                </div>
+                                                <span className="text-xs font-black text-rose-600">{Math.round(cpiScaleFactor * 100)}%</span>
+                                            </div>
+                                            <input type="range" min="0" max="100" step="1" value={cpiScaleFactor * 100} onChange={e => setCpiScaleFactor(parseFloat(e.target.value) / 100)} className="w-full h-1 appearance-none bg-slate-200 accent-rose-500 rounded-full" />
+                                        </div>
                                     </div>
                                 </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="bg-indigo-900 text-white p-6 rounded-3xl relative overflow-hidden">
                                         <ArrowUpRight className="absolute right-[-10px] top-[-10px] opacity-10" size={100} />
@@ -600,48 +844,76 @@
                                         <div className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">利益: {formatCurrency(getFullYearTotal(selectedForecastCase).revenue - getFullYearTotal(selectedForecastCase).spend)}</div>
                                     </div>
                                 </div>
+
+                                {/* MRR Growth Chart - Priority placement as requested */}
+                                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                    <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1 mb-6">
+                                        <BarChart3 size={12} /> MRR Growth Forecast (累積効果の可視化)
+                                    </p>
+                                    <div className="h-64 w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={monthlyForecastData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                <defs>
+                                                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} tickFormatter={(val) => `¥${(val / 1000000).toFixed(1)}M`} />
+                                                <Tooltip
+                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
+                                                    formatter={(value) => [`¥${Math.round(value).toLocaleString()}`, 'MRR']}
+                                                />
+                                                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
                                 <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 flex gap-4 items-center">
                                     <Sparkles size={24} className="text-amber-600 shrink-0" />
                                     <div><h4 className="text-xs font-black text-amber-900 uppercase mb-1">アドバイス</h4><p className="text-[11px] font-bold text-amber-800 leading-relaxed">{getSimulationAdvice(getFullYearTotal(selectedForecastCase))}</p></div>
                                 </div>
-                                <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                                    <table className="w-full text-[11px] text-left">
+                                <div className="overflow-x-auto rounded-2xl border border-slate-100 mobile-scroll-x">
+                                    <table className="w-full text-left actual-table">
                                         <thead className="bg-slate-50 border-b border-slate-100 text-slate-500">
-                                            <tr className="uppercase font-black text-[9px]">
-                                                <th className="p-4">月度</th>
-                                                <th className="p-4 text-right">広告費</th>
-                                                <th className="p-4 text-right text-indigo-600">MRR</th>
-                                                <th className="p-4 text-right">DL数</th>
-                                                <th className="p-4 text-right text-rose-600">継続中</th>
-                                                <th className="p-4 text-right text-slate-400">累計</th>
+                                            <tr className="uppercase font-black text-[10px]">
+                                                <th className="p-3">月度</th>
+                                                <th className="p-3 text-right">広告費</th>
+                                                <th className="p-3 text-right text-indigo-600">MRR（月次サブスク売上）</th>
+                                                <th className="p-3 text-right">DL数</th>
+                                                <th className="p-3 text-right text-rose-600">継続中</th>
+                                                <th className="p-3 text-right text-slate-400">累計</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
                                             {monthlyForecastData.map((m, i) => (
                                                 <tr key={m.month} className="hover:bg-slate-50">
-                                                    <td className="p-4 font-black">{m.month}</td>
-                                                    <td className="p-4 text-right font-mono">{formatCurrency(m.spend)}</td>
-                                                    <td className="p-4 text-right font-mono font-black text-indigo-600">{formatCurrency(m.revenue)}</td>
-                                                    <td className="p-4 text-right font-mono">{formatNum(m.installs)}</td>
-                                                    <td className="p-4 text-right font-mono text-rose-600 font-bold">{formatNum(m.paid)}</td>
-                                                    <td className="p-4 text-right font-mono text-slate-400">{formatNum(m.cumulative)}</td>
+                                                    <td className="p-3 font-black">{m.month}</td>
+                                                    <td className="p-3 text-right font-mono">{formatCurrency(m.spend)}</td>
+                                                    <td className="p-3 text-right font-mono font-black text-indigo-600">{formatCurrency(m.revenue)}</td>
+                                                    <td className="p-3 text-right font-mono">{formatNum(m.installs)}</td>
+                                                    <td className="p-3 text-right font-mono text-rose-600 font-bold">{formatNum(m.paid)}</td>
+                                                    <td className="p-3 text-right font-mono text-slate-400">{formatNum(m.cumulative)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                         <tfoot className="bg-slate-900 text-white font-black">
                                             <tr>
-                                                <td className="p-4 text-[10px] uppercase">2026年 合計</td>
-                                                <td className="p-4 text-right font-mono text-[10px]">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</td>
-                                                <td className="p-4 text-right font-mono text-[11px] text-indigo-300">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</td>
-                                                <td className="p-4 text-right font-mono text-[10px]">
+                                                <td className="p-3 text-[10px] uppercase">2026年 合計</td>
+                                                <td className="p-3 text-right font-mono text-[10px]">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</td>
+                                                <td className="p-3 text-right font-mono text-[12px] text-indigo-300">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</td>
+                                                <td className="p-3 text-right font-mono text-[10px]">
                                                     <div className="flex flex-col items-end">
                                                         <span>{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.installs, 0))} DL</span>
-                                                        <span className="text-[8px] opacity-60">{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.regs, 0))} Reg</span>
+                                                        <span className="text-[8px] opacity-60">{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.regs, 0))} 登録</span>
                                                     </div>
                                                 </td>
-                                                <td className="p-4 text-right font-mono text-[10px]" colSpan="2">
+                                                <td className="p-3 text-right font-mono text-[10px]" colSpan="2">
                                                     <div className="flex flex-col items-end">
-                                                        <span>{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.cumulative, 0))} Paid Total</span>
+                                                        <span>{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.cumulative, 0))} 累計課金数</span>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -651,8 +923,8 @@
                             </div>
                         )}
                     </div>
-                    <div className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest pb-12">v6.4 Mobile Optimized</div>
-                </div>
+                    <div className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest pb-12">SOULRiZA Marketing Simulator v6.x Premium</div>
+                </div >
             );
         };
 
