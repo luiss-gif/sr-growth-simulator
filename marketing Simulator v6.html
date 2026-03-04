@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOULRiZA Growth Simulator</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
+            }
+
+            body {
+                background-color: white !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .no-export {
+                display: none !important;
+            }
+
+            .max-w-7xl {
+                max-width: 100% !important;
+                margin: 0 !important;
+                width: 100% !important;
+            }
+
+            .shadow-sm,
+            .shadow-lg,
+            .shadow-md,
+            .shadow-xl {
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+
+            .bg-slate-50 {
+                background-color: white !important;
+            }
+
+            .grid {
+                display: grid !important;
+                page-break-inside: avoid;
+            }
+
+            .text-indigo-600,
+            .text-indigo-700,
+            .text-indigo-900 {
+                color: #4338ca !important;
+            }
+
+            .text-rose-600 {
+                color: #e11d48 !important;
+            }
+        }
+    </style>
+
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Import Map -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0"
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useMemo, useEffect } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import {
+            TrendingUp,
+            Users,
+            Target,
+            DollarSign,
+            BarChart3,
+            Settings2,
+            Activity,
+            ArrowRight,
+            Clock,
+            HelpCircle,
+            Calculator,
+            ChevronRight,
+            Layers,
+            Sparkles,
+            Loader2,
+            MessageSquare,
+            History,
+            Calendar,
+            Table as TableIcon,
+            UserPlus,
+            ChevronDown,
+            ChevronRight as ChevronRightIcon,
+            TrendingDown,
+            ArrowUpRight
+        } from 'lucide-react';
+
+        const App = () => {
+            const [selectedForecastCase, setSelectedForecastCase] = useState('case1');
+            const [monthlyGrowthRate, setMonthlyGrowthRate] = useState(0.10);
+
+            const actualData = {
+                "2026-02": {
+                    total: { spend: 4982575, clicks: 307472, installs: 5716, instRate: 1.86, cpi: 872, regRate: 28.43, regs: 1625, regCpa: 3066 },
+                    breakdown: [
+                        { media: "Google広告", spend: 1940518, clicks: 36892, installs: 3268, instRate: 8.86, cpi: 594, regRate: 19.31, regs: 631, regCpa: 3075 },
+                        { media: "Instagram広告", spend: 1868108, clicks: 11282, installs: 1695, instRate: 15.02, cpi: 1102, regRate: 40.65, regs: 689, regCpa: 2711 },
+                        { media: "TikTok広告", spend: 1158347, clicks: 259047, installs: 753, instRate: 0.29, cpi: 1538, regRate: 40.50, regs: 305, regCpa: 3798 },
+                        { media: "Apple検索広告", spend: 15601, clicks: 251, installs: 0, instRate: 0, cpi: 0, regRate: 0, regs: 0, regCpa: 0 }
+                    ]
+                },
+                "2026-01": {
+                    total: { spend: 4894880, clicks: 560619, installs: 3234, instRate: 0.58, cpi: 1514, regRate: 41.87, regs: 1354, regCpa: 3615 },
+                    breakdown: [
+                        { media: "Google広告", spend: 2070647, clicks: 8955, installs: 1367, instRate: 15.27, cpi: 1515, regRate: 40.01, regs: 547, regCpa: 3785 },
+                        { media: "Instagram広告", spend: 1473614, clicks: 6875, installs: 1140, instRate: 16.58, cpi: 1293, regRate: 38.16, regs: 435, regCpa: 3388 },
+                        { media: "TikTok広告", spend: 1333794, clicks: 544583, installs: 727, instRate: 0.13, cpi: 1835, regRate: 51.17, regs: 372, regCpa: 3585 },
+                        { media: "Apple検索広告", spend: 16824, clicks: 206, installs: 0, instRate: 0, cpi: 0, regRate: 0, regs: 0, regCpa: 0 }
+                    ]
+                },
+                "2025-12": {
+                    total: { spend: 5001296, clicks: 443456, installs: 2833, instRate: 0.64, cpi: 1765, regRate: 44.76, regs: 1268, regCpa: 3944 },
+                    breakdown: [
+                        { media: "TikTok広告", spend: 1773456, clicks: 426846, installs: 958, instRate: 0.22, cpi: 1851, regRate: 49.16, regs: 471, regCpa: 3765 },
+                        { media: "Google広告", spend: 1634207, clicks: 10872, installs: 1202, instRate: 11.06, cpi: 1360, regRate: 38.44, regs: 462, regCpa: 3537 },
+                        { media: "Instagram広告", spend: 1492723, clicks: 4960, installs: 673, instRate: 13.57, cpi: 2218, regRate: 49.78, regs: 335, regCpa: 4456 }
+                    ]
+                }
+            };
+
+            const [expandedMonths, setExpandedMonths] = useState(["2026-02"]);
+            const toggleMonth = (m) => setExpandedMonths(p => p.includes(m) ? p.filter(x => x !== m) : [...p, m]);
+
+            const [expandedCases, setExpandedCases] = useState({ case1: true, case2: false, case3: false });
+            const toggleCase = (c) => setExpandedCases(p => ({ ...p, [c]: !p[c] }));
+
+            const [cases, setCases] = useState({
+                case1: { name: 'Case 1 (直近実績ベース)', adSpend: 5000000, cpi: 850, regCvr: 0.30, ftueRate: 0.80, payRate: 0.15, arpu: 2000, retention: 8 },
+                case2: { name: 'Case 2 (改善モデル)', adSpend: 5000000, cpi: 500, regCvr: 0.40, ftueRate: 0.85, payRate: 0.18, arpu: 2500, retention: 10 },
+                case3: { name: 'Case 3 (理想モデル)', adSpend: 10000000, cpi: 350, regCvr: 0.50, ftueRate: 0.90, payRate: 0.20, arpu: 3000, retention: 12 },
+            });
+
+            const calculateMetrics = (params) => {
+                const installs = params.adSpend / (params.cpi || 1);
+                const registered = installs * params.regCvr;
+                const ftueUsers = registered * params.ftueRate;
+                const paidUsers = ftueUsers * params.payRate;
+                const monthlyRev = paidUsers * params.arpu;
+                const ltv = params.arpu * params.retention;
+                const cac = paidUsers > 0 ? params.adSpend / paidUsers : 0;
+                const ltvCac = cac > 0 ? ltv / cac : 0;
+                const payback = params.arpu > 0 ? cac / params.arpu : 0;
+                const roas = params.adSpend > 0 ? (monthlyRev / params.adSpend) * 100 : 0;
+                const unitProfit = ltv - cac;
+                return { installs, registered, ftueUsers, paidUsers, monthlyRev, ltv, cac, ltvCac, payback, roas, unitProfit };
+            };
+
+            const results = useMemo(() => ({
+                case1: calculateMetrics(cases.case1),
+                case2: calculateMetrics(cases.case2),
+                case3: calculateMetrics(cases.case3),
+            }), [cases]);
+
+            const formatUSD = (jpy) => `$${(jpy / 155).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            const formatCurrency = (num) => (
+                <div className="inline-flex flex-col items-end leading-none">
+                    <span>¥{Math.round(num || 0).toLocaleString()}</span>
+                    <span className="text-[8px] opacity-60 font-medium no-export-usd">{formatUSD(num)}</span>
+                </div>
+            );
+            const formatNum = (num) => Math.round(num || 0).toLocaleString();
+
+            const handleExportPdf = () => window.print();
+
+            const copyActualsToCase1 = () => {
+                const actual = actualData["2026-02"].total;
+                setCases(prev => ({
+                    ...prev,
+                    case1: {
+                        ...prev.case1,
+                        adSpend: actual.spend,
+                        cpi: actual.cpi,
+                        regCvr: actual.regs / actual.installs
+                    }
+                }));
+            };
+
+            const getDynamicAdvice = (key) => {
+                const res = results[key];
+                if (res.ltvCac < 2.0) {
+                    return `⚠️ LTV/CACが${res.ltvCac.toFixed(2)}と低いです。CPIの改善またはARPUの引き上げが急務です。`;
+                } else if (res.ltvCac < 3.5) {
+                    return `💡 良好な効率です。さらにチャーン率を下げる（継続月数を伸ばす）ことで、利益率が劇的に向上します。`;
+                } else {
+                    return `✅ 素晴らしい投資効率です。この単価感であれば広告予算を増強し、シェア獲得を一気に進めるべきタイミングです。`;
+                }
+            };
+
+            const monthlyForecastData = useMemo(() => {
+                const months = ["03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
+                const baseCfg = cases[selectedForecastCase];
+                const baseResults = results[selectedForecastCase];
+                let currentSpend = baseCfg.adSpend;
+                let activePaidUsers = 0;
+                let cumulativePaidUsers = 0;
+                const churnRate = 1 / (baseCfg.retention || 1);
+                return months.map((m, index) => {
+                    const isMonetized = parseInt(m) >= 5;
+                    if (index > 0) currentSpend = currentSpend * (1 + monthlyGrowthRate);
+                    const factor = currentSpend / baseCfg.adSpend;
+                    const newPaidUsers = baseResults.paidUsers * factor;
+                    activePaidUsers = (activePaidUsers * (1 - churnRate)) + newPaidUsers;
+                    cumulativePaidUsers += newPaidUsers;
+                    return {
+                        month: `2026/${m}`,
+                        spend: currentSpend,
+                        revenue: isMonetized ? (activePaidUsers * baseCfg.arpu) : 0,
+                        installs: baseResults.installs * factor,
+                        regs: baseResults.registered * factor,
+                        paid: activePaidUsers,
+                        cumulative: cumulativePaidUsers,
+                        isMonetized
+                    };
+                });
+            }, [selectedForecastCase, cases, results, monthlyGrowthRate]);
+
+            const getFullYearTotal = (caseKey) => {
+                const cfg = cases[caseKey];
+                const res = results[caseKey];
+                const churnRate = 1 / (cfg.retention || 1);
+                const janFebSpend = actualData["2026-01"].total.spend + actualData["2026-02"].total.spend;
+                let totalRev = 0;
+                let totalSpend = janFebSpend;
+                let activePaid = 0;
+                let currentMonthSpend = cfg.adSpend;
+                for (let i = 0; i < 10; i++) {
+                    const monthNum = i + 3;
+                    const isMonetized = monthNum >= 5;
+                    if (i > 0) currentMonthSpend = currentMonthSpend * (1 + monthlyGrowthRate);
+                    const factor = currentMonthSpend / cfg.adSpend;
+                    const newPaid = res.paidUsers * factor;
+                    activePaid = (activePaid * (1 - churnRate)) + newPaid;
+                    totalSpend += currentMonthSpend;
+                    if (isMonetized) totalRev += (activePaid * cfg.arpu);
+                }
+                return { revenue: totalRev, spend: totalSpend, roi: totalRev / (totalSpend || 1) };
+            };
+
+            const getSimulationAdvice = (total) => {
+                if (total.roi < 1.0) return "⚠️ 通期で赤字の見込みです。収益化までの先行投資フェーズですが、ユニット当たり利益の改善が必要です。";
+                if (total.roi < 2.0) return "📈 通期黒字化の見込みです。成長を加速させるには、継続率を高め累積ユーザーを増やすことが鍵です。";
+                return "✨ 非常に高い収益性です。現在の戦略を維持し、積極的にマーケットを獲得しにいきましょう。";
+            };
+
+            const StepSlider = ({ label, value, min, max, step, onChange, suffix = "", isPercent = false }) => {
+                const displayVal = isPercent ? Math.round(value * 100) : value;
+                return (
+                    <div className="space-y-1 group">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase">
+                            <span>{label}</span>
+                            <div className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded text-indigo-700 font-mono font-black">
+                                {displayVal}{suffix}
+                            </div>
+                        </div>
+                        <input type="range" min={min} max={max} step={step} value={displayVal} onChange={e => onChange(isPercent ? parseFloat(e.target.value) / 100 : parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 no-export" />
+                    </div>
+                );
+            };
+
+            const FunnelVisual = ({ res }) => {
+                const stages = [
+                    { label: "Install", val: res.installs, color: "bg-indigo-400" },
+                    { label: "Register", val: res.registered, color: "bg-indigo-500" },
+                    { label: "Tutorial", val: res.ftueUsers, color: "bg-indigo-600" },
+                    { label: "Pay", val: res.paidUsers, color: "bg-rose-500" }
+                ];
+                const max = res.installs || 1;
+                return (
+                    <div className="space-y-3 pt-2">
+                        <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1"><Layers size={12} /> コンバージョン・ファネル</p>
+                        <div className="space-y-1.5">
+                            {stages.map((s, i) => (
+                                <div key={i} className="space-y-1">
+                                    <div className="flex justify-between text-[9px] font-black uppercase text-slate-400">
+                                        <span>{s.label}</span>
+                                        <span>{formatNum(s.val)} ({((s.val / max) * 100).toFixed(1)}%)</span>
+                                    </div>
+                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div className={`h-full ${s.color} transition-all duration-500`} style={{ width: `${(s.val / max) * 100}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-50 p-4 md:p-8 text-slate-900 font-sans">
+                    <div className="max-w-7xl mx-auto space-y-8">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-indigo-600 rounded-2xl text-white">
+                                    <Activity size={24} />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-black text-slate-900 leading-tight">SOULRiZA Growth Simulator 2026</h1>
+                                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                                        <History size={12} /> 戦略的グロース・シミュレーター
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col md:flex-row gap-2 no-export">
+                                <button onClick={handleExportPdf} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-2.5 rounded-2xl font-bold border border-slate-200 transition-all"><TableIcon size={18} /> PDFエクスポート</button>
+                            </div>
+                        </div>
+
+                        {/* 実績ダッシュボード */}
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                            <h2 className="text-sm font-black text-slate-800 uppercase mb-4 flex items-center gap-2"><History size={16} /> 直近の実績データ</h2>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-[11px] text-left">
+                                    <thead className="text-slate-400 border-b border-slate-100">
+                                        <tr>
+                                            <th className="pb-3 px-2 font-bold uppercase w-32">媒体 / 対象月</th>
+                                            <th className="pb-3 text-right">費用</th>
+                                            <th className="pb-3 text-right">クリック</th>
+                                            <th className="pb-3 text-right">DL数</th>
+                                            <th className="pb-3 text-right">CPI</th>
+                                            <th className="pb-3 text-right font-black text-slate-600 uppercase">登録数</th>
+                                            <th className="pb-3 text-right uppercase">登録CPA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {Object.entries(actualData).map(([month, data]) => (
+                                            <React.Fragment key={month}>
+                                                <tr className="border-b border-slate-100 bg-slate-50/50 cursor-pointer" onClick={() => toggleMonth(month)}>
+                                                    <td className="py-4 px-2 font-black text-slate-700 flex items-center gap-2">{expandedMonths.includes(month) ? <ChevronDown size={14} /> : <ChevronRightIcon size={14} />} {month}</td>
+                                                    <td className="py-4 text-right font-mono">{formatCurrency(data.total.spend)}</td>
+                                                    <td className="py-4 text-right font-mono">{formatNum(data.total.clicks)}</td>
+                                                    <td className="py-4 text-right font-mono font-bold">{formatNum(data.total.installs)}</td>
+                                                    <td className={`py-4 text-right font-black ${data.total.cpi < 1000 ? 'text-green-600' : 'text-slate-800'}`}>{formatCurrency(data.total.cpi)}</td>
+                                                    <td className="py-4 text-right font-mono font-black text-indigo-600">{formatNum(data.total.regs)}</td>
+                                                    <td className="py-4 text-right text-indigo-600 font-bold">{formatCurrency(data.total.regCpa)}</td>
+                                                </tr>
+                                                {expandedMonths.includes(month) && data.breakdown.map((item, idx) => (
+                                                    <tr key={`${month}-${idx}`} className="border-b border-slate-50 text-slate-500">
+                                                        <td className="py-3 px-8 text-slate-400 font-medium">{item.media}</td>
+                                                        <td className="py-3 text-right font-mono">{formatCurrency(item.spend)}</td>
+                                                        <td className="py-3 text-right font-mono">{formatNum(item.clicks)}</td>
+                                                        <td className="py-3 text-right font-mono">{formatNum(item.installs)}</td>
+                                                        <td className="py-3 text-right font-mono">{item.cpi > 0 ? formatCurrency(item.cpi) : "-"}</td>
+                                                        <td className="py-3 text-right font-mono font-bold">{formatNum(item.regs)}</td>
+                                                        <td className="py-3 text-right font-mono">{item.regCpa > 0 ? formatCurrency(item.regCpa) : "-"}</td>
+                                                    </tr>
+                                                ))}
+                                            </React.Fragment>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* シミュレーション設定エリア */}
+                        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-slate-200 no-export">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600"><Settings2 size={24} /></div>
+                                <div>
+                                    <h2 className="text-lg font-black text-slate-800 uppercase tracking-tight">シミュレーション設定</h2>
+                                    <p className="text-[10px] text-slate-400 font-bold">パラメータを調整して未来を予測</p>
+                                </div>
+                            </div>
+                            <button onClick={copyActualsToCase1} className="flex items-center gap-2 bg-slate-800 hover:bg-black text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 group"><History size={16} /> 実績(2月)をCase 1にコピー</button>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {Object.entries(cases).map(([key, config]) => {
+                                const res = results[key];
+                                const isHealthy = res.ltvCac >= 3.0;
+                                const updateField = (field, val) => setCases(prev => ({ ...prev, [key]: { ...prev[key], [field]: val } }));
+                                const baseRes = results['case1'];
+                                const isBase = key === 'case1';
+                                const getDiff = (current, base) => (!base || base === 0) ? 0 : ((current - base) / base) * 100;
+                                const revDiff = isBase ? 0 : getDiff(res.monthlyRev, baseRes.monthlyRev);
+                                const cacDiff = isBase ? 0 : getDiff(res.cac, baseRes.cac);
+                                const ltvDiff = isBase ? 0 : getDiff(res.ltv, baseRes.ltv);
+                                const renderDiff = (diff, isBadPositive) => {
+                                    if (diff === 0) return <span className="text-slate-400">-</span>;
+                                    const sign = diff > 0 ? '+' : '';
+                                    const color = isBadPositive ? (diff > 0 ? 'text-rose-500' : 'text-green-500') : (diff > 0 ? 'text-green-500' : 'text-rose-500');
+                                    return <span className={`text-[10px] font-black ${color}`}>{sign}{diff.toFixed(0)}%</span>;
+                                };
+
+                                return (
+                                    <div key={key} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300">
+                                        <div className={`h-2 ${key === 'case1' ? 'bg-slate-300' : key === 'case2' ? 'bg-indigo-400' : 'bg-indigo-600'}`}></div>
+                                        <div className="space-y-5 flex-1 p-6">
+                                            <h3 className="font-black text-slate-800 tracking-tight">{config.name}</h3>
+
+                                            <div className={`text-center py-4 rounded-2xl border ${isHealthy ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                                                <p className={`text-[10px] font-bold uppercase mb-0.5 ${isHealthy ? 'text-green-600' : 'text-red-500'}`}>LTV / CAC</p>
+                                                <p className="text-[8px] text-slate-400 font-bold mb-1 leading-none">顧客生涯価値 (LTV) ÷ 顧客獲得コスト (CAC)</p>
+                                                <p className={`text-3xl font-black leading-none my-2 ${isHealthy ? 'text-green-700' : 'text-red-600'}`}>{res.ltvCac.toFixed(2)}</p>
+
+                                                <div className="flex justify-center mb-3">
+                                                    {res.ltvCac < 1.0 ? (
+                                                        <span className="bg-red-100 text-red-700 text-[10px] font-black px-3 py-1 rounded-full">❌ 不成立</span>
+                                                    ) : res.ltvCac < 3.0 ? (
+                                                        <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-3 py-1 rounded-full">△ 微妙</span>
+                                                    ) : res.ltvCac < 6.0 ? (
+                                                        <span className="bg-green-100 text-green-700 text-[10px] font-black px-3 py-1 rounded-full">○ 成立</span>
+                                                    ) : (
+                                                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black px-3 py-1 rounded-full">◎ スケール可能</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 border-t border-slate-100 mt-2 pt-3">
+                                                    <div className="border-r border-slate-100">
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">回収期間</p>
+                                                        <p className="text-sm font-black text-slate-700">{res.payback.toFixed(1)}<span className="text-[10px] ml-0.5">ヶ月</span></p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">1人あたり利益</p>
+                                                        <p className={`text-sm font-black ${res.unitProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>{formatCurrency(res.unitProfit)}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {!isBase && (
+                                                <div className="flex justify-between items-center bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">vs Case 1</span>
+                                                    <div className="flex gap-4">
+                                                        <div className="flex flex-col items-end"><span className="text-[9px] text-slate-400 uppercase leading-none">売上</span>{renderDiff(revDiff, false)}</div>
+                                                        <div className="flex flex-col items-end"><span className="text-[9px] text-slate-400 uppercase leading-none">CAC</span>{renderDiff(cacDiff, true)}</div>
+                                                        <div className="flex flex-col items-end"><span className="text-[9px] text-slate-400 uppercase leading-none">LTV</span>{renderDiff(ltvDiff, false)}</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="grid grid-cols-1">
+                                                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-center">
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">初月ROAS / 初月回収率</p>
+                                                    <p className={`text-xl font-black ${res.roas >= 100 ? 'text-green-600' : 'text-amber-500'}`}>{res.roas.toFixed(0)}%</p>
+                                                    <p className="text-[8px] text-slate-400 font-bold mt-1 leading-none">
+                                                        {res.roas < 15 ? "回収が遅い" : res.roas < 100 ? "LTV回収前提" : "初月で原価回収済"}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2">
+                                                <div
+                                                    className="flex justify-between items-center p-2 bg-indigo-50/50 rounded-xl cursor-pointer hover:bg-indigo-100/50 transition-colors no-export"
+                                                    onClick={() => toggleCase(key)}
+                                                >
+                                                    <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1"><Settings2 size={12} /> コントロール (レバー)</p>
+                                                    {expandedCases[key] ? <ChevronDown size={14} className="text-indigo-400" /> : <ChevronRightIcon size={14} className="text-indigo-400" />}
+                                                </div>
+
+                                                {expandedCases[key] && (
+                                                    <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-top-2 no-export">
+                                                        <StepSlider label="広告予算" value={config.adSpend} min={500000} max={20000000} step={500000} suffix="円" onChange={v => updateField('adSpend', v)} />
+                                                        <StepSlider label="CPI" value={config.cpi} min={200} max={2000} step={50} suffix="円" onChange={v => updateField('cpi', v)} />
+                                                        <StepSlider label="登録CVR" value={config.regCvr} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField('regCvr', v)} />
+                                                        <StepSlider label="FTUE率" value={config.ftueRate} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField('ftueRate', v)} />
+                                                        <StepSlider label="課金転換率" value={config.payRate} min={1} max={100} step={1} suffix="%" isPercent onChange={v => updateField('payRate', v)} />
+                                                        <StepSlider label="平均継続期間" value={config.retention} min={1} max={24} step={1} suffix="ヶ月" onChange={v => updateField('retention', v)} />
+                                                        <StepSlider label="ARPU (客単価)" value={config.arpu} min={500} max={20000} step={100} suffix="円" onChange={v => updateField('arpu', v)} />
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="pt-4 border-t border-slate-200">
+                                                <p className="text-[10px] font-black text-rose-500 uppercase flex items-center gap-1 mb-3"><BarChart3 size={12} /> シミュレーション結果</p>
+                                                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-2">
+                                                    <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                                                        <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none">DL数</p><p className="text-sm font-black">{formatNum(res.installs)}</p></div>
+                                                        <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none">ユーザー登録</p><p className="text-sm font-black">{formatNum(res.registered)}</p></div>
+                                                        <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none">FTUE突破</p><p className="text-sm font-black">{formatNum(res.ftueUsers)}</p></div>
+                                                        <div className="space-y-0.5"><p className="text-[9px] font-bold text-slate-400 uppercase leading-none">課金者</p><p className="text-sm font-black text-rose-600">{formatNum(res.paidUsers)}</p></div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-2 p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-slate-400 uppercase">MRR (月次サブスク売上)</span>
+                                                            <span className="text-[7px] text-slate-300 font-bold leading-none">課金者 × ARPU（客単価）</span>
+                                                        </div>
+                                                        <span className="font-black text-indigo-700 text-base">{formatCurrency(res.monthlyRev)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-xs"><span className="font-bold text-slate-400 uppercase flex items-center gap-1">獲得 CAC</span><span className="font-black text-rose-600">{formatCurrency(res.cac)}</span></div>
+                                                    <div className="flex justify-between items-center text-xs"><span className="font-bold text-slate-400 uppercase flex items-center gap-1">推定 LTV</span><span className="font-black text-indigo-700">{formatCurrency(res.ltv)}</span></div>
+                                                </div>
+                                                <FunnelVisual res={res} />
+                                            </div>
+
+                                            <div className="mt-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex gap-2 items-start no-export-summary">
+                                                <MessageSquare size={14} className="text-indigo-500 shrink-0 mt-0.5" />
+                                                <p className="text-[10px] leading-relaxed text-indigo-800 font-bold">{getDynamicAdvice(key)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* 収益予測セクション */}
+                        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                            <h2 className="text-lg font-black text-slate-800 uppercase mb-8 flex items-center gap-3"><TableIcon size={24} className="text-indigo-600" /> 2026年 収益・成長予測シミュレーション</h2>
+                            <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100 mb-8 no-export">
+                                <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm border border-slate-200">
+                                    {['case1', 'case2', 'case3'].map(key => (
+                                        <button key={key} onClick={() => setSelectedForecastCase(key)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${selectedForecastCase === key ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{cases[key].name.split(' ')[1]}</button>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-3 px-2">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">月間予算成長率</span>
+                                    <input type="range" min="0" max="50" step="1" value={monthlyGrowthRate * 100} onChange={e => setMonthlyGrowthRate(parseFloat(e.target.value) / 100)} className="w-24 h-1 appearance-none bg-slate-200 accent-indigo-600 rounded-full" />
+                                    <span className="text-xs font-black text-indigo-600">{Math.round(monthlyGrowthRate * 100)}%</span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                <div className="bg-indigo-900 text-white p-6 rounded-3xl relative overflow-hidden">
+                                    <ArrowUpRight className="absolute right-[-10px] top-[-10px] opacity-10" size={100} />
+                                    <p className="text-[10px] font-bold text-indigo-300 uppercase mb-1">{cases[selectedForecastCase].name} 通期売上予想</p>
+                                    <p className="text-3xl font-black">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</p>
+                                    <div className="mt-2 text-[10px] font-bold text-indigo-200 uppercase tracking-widest">ROI: {(getFullYearTotal(selectedForecastCase).roi * 100).toFixed(1)}%</div>
+                                </div>
+                                <div className="bg-slate-50 border border-slate-200 p-6 rounded-3xl">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">2026年 通期総投資額</p>
+                                    <p className="text-3xl font-black text-slate-800">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</p>
+                                    <div className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">実質利益: {formatCurrency(getFullYearTotal(selectedForecastCase).revenue - getFullYearTotal(selectedForecastCase).spend)}</div>
+                                </div>
+                            </div>
+                            <div className="mb-8 p-6 bg-amber-50 rounded-2xl border border-amber-100 flex gap-4 items-center">
+                                <Sparkles size={24} className="text-amber-600" />
+                                <div>
+                                    <h4 className="text-xs font-black text-amber-900 uppercase mb-1">戦略シミュレーターのアドバイス</h4>
+                                    <p className="text-[11px] font-bold text-amber-800">{getSimulationAdvice(getFullYearTotal(selectedForecastCase))}</p>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto rounded-2xl border border-slate-100 shadow-sm">
+                                <table className="w-full text-[11px] text-left">
+                                    <thead className="bg-slate-50 border-b border-slate-100 font-black uppercase text-slate-500">
+                                        <tr>
+                                            <th className="p-4">月度</th>
+                                            <th className="p-4 text-right text-indigo-600">広告費用</th>
+                                            <th className="p-4 text-right text-indigo-900">月間売上</th>
+                                            <th className="p-4 text-right">DL数</th>
+                                            <th className="p-4 text-right text-rose-600">継続課金者</th>
+                                            <th className="p-4 text-right text-slate-400">累計課金者</th>
+                                            <th className="p-4 text-right">予算増減</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {monthlyForecastData.map((m, i) => (
+                                            <tr key={m.month} className="hover:bg-slate-50">
+                                                <td className="p-4 font-black">{m.month}</td>
+                                                <td className="p-4 text-right font-mono font-bold">{formatCurrency(m.spend)}</td>
+                                                <td className="p-4 text-right font-mono font-black text-indigo-600">{formatCurrency(m.revenue)}</td>
+                                                <td className="p-4 text-right font-mono text-slate-500">{formatNum(m.installs)}</td>
+                                                <td className="p-4 text-right font-mono font-bold text-slate-700">{formatNum(m.paid)}</td>
+                                                <td className="p-4 text-right font-mono text-slate-400">{formatNum(m.cumulative)}</td>
+                                                <td className="p-4 text-right font-mono text-indigo-400 font-bold">{i === 0 ? "START" : `+${Math.round(monthlyGrowthRate * 100)}%`}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-slate-900 text-white font-black text-[12px]">
+                                        <tr>
+                                            <td className="p-4 uppercase tracking-widest">2026年 合計/平均</td>
+                                            <td className="p-4 text-right font-mono">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</td>
+                                            <td className="p-4 text-right font-mono text-indigo-300">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</td>
+                                            <td className="p-4 text-right font-mono">{formatNum(actualData["2026-01"].total.installs + actualData["2026-02"].total.installs + monthlyForecastData.reduce((acc, m) => acc + m.installs, 0))}</td>
+                                            <td className="p-4 text-right font-mono text-rose-400">{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.paid, 0) / 10)} (Avg)</td>
+                                            <td className="p-4 text-right font-mono text-slate-400">{formatNum(monthlyForecastData[9].cumulative)}</td>
+                                            <td className="p-4 text-right">-</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                        <div className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest pb-12">Strategic Forecast System for SOULRiZA v6.2</div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
