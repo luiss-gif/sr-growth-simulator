@@ -102,13 +102,6 @@
                 width: 100% !important;
             }
 
-            .mobile-btn {
-                width: 100% !important;
-                min-height: 44px;
-                justify-content: center;
-                margin-top: 8px;
-            }
-
             .mobile-p-16 {
                 padding: 16px !important;
             }
@@ -194,6 +187,46 @@
             width: 100%;
             font-size: 14px;
         }
+
+        /* Tooltip Styles */
+        .tooltip-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .tooltip-content {
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            white-space: normal;
+            min-width: 160px;
+            max-width: 260px;
+            z-index: 100;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            pointer-events: none;
+            line-height: 1.4;
+            text-align: left;
+        }
+
+        .tooltip-content::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+        }
     </style>
 
     <!-- Babel Standalone -->
@@ -216,9 +249,9 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useMemo, useEffect } from 'react';
+        import React, { useState, useMemo, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+        import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
         import {
             TrendingUp,
             Users,
@@ -243,10 +276,55 @@
             ChevronDown,
             ChevronRight as ChevronRightIcon,
             TrendingDown,
-            ArrowUpRight
+            ArrowUpRight,
+            Info,
+            CreditCard,
+            Percent,
+            ShieldCheck,
+            Zap,
+            Download,
+            Share2,
+            Printer
         } from 'lucide-react';
 
         const App = () => {
+            const descriptions = {
+                ltvCac: "顧客生涯価値(LTV) ÷ 顧客獲得コスト(CAC)。2.0以上が目安（モデル次第）。",
+                ltv: "1人の顧客が解約までに支払う合計。ARPU × 継続期間（ヶ月）。",
+                arpu: "月あたりの平均課金額（課金者あたり）。",
+                retention: "平均で何ヶ月課金が続くか（サブスク継続月数）。",
+                monthlyRev: "月次のサブスク売上。課金ユーザー数 × ARPU",
+                cac: "課金者1人を獲得するためのコスト。広告費 ÷ 課金者数（このモデルでは）。",
+                payback: "CACを回収するのに必要な期間。CAC ÷ ARPU（= LTV/CAC × 継続期間の逆算でも可）。",
+                cpi: "インストール1件あたりの広告コスト。広告費 ÷ インストール数。",
+                regCvr: "インストールした人のうち、登録まで進む割合。",
+                ftueRate: "登録した人のうち、チュートリアルを完了する割合。",
+                payRate: "チュート完了した人のうち、課金する割合。",
+                unitProfit: "1人の顧客が生涯で生み出す粗利。LTV − CAC。"
+            };
+
+            const Tooltip = ({ id, label, children, className = "" }) => {
+                const [isVisible, setIsVisible] = useState(false);
+                const content = descriptions[id] || "";
+
+                return (
+                    <div
+                        className={`tooltip-container ${className}`}
+                        onMouseEnter={() => setIsVisible(true)}
+                        onMouseLeave={() => setIsVisible(false)}
+                        onClick={(e) => { e.stopPropagation(); setIsVisible(!isVisible); }}
+                    >
+                        <span className="cursor-help">{label || children}</span>
+                        <Info size={10} className="text-slate-300 hover:text-indigo-400 transition-colors" />
+                        {isVisible && (
+                            <div className="tooltip-content animate-in fade-in zoom-in duration-100 italic">
+                                {content}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
             const [selectedForecastCase, setSelectedForecastCase] = useState('case1');
             const [activeCaseTab, setActiveCaseTab] = useState('case1');
             const [monthlyGrowthRate, setMonthlyGrowthRate] = useState(0.10);
@@ -496,7 +574,7 @@
             };
 
             return (
-                <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500 body-text">
+                <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 animate-in fade-in duration-500 body-text" >
                     <div className="flex flex-col gap-6">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-3xl shadow-sm border border-slate-200">
                             <div className="flex items-center gap-4">
@@ -612,7 +690,7 @@
                     </div>
 
                     {/* 成長シナリオ比較エリア */}
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden" >
                         <div className="p-4 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('cases')}>
                             <div className="flex items-center gap-3">
                                 <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600"><Settings2 size={24} /></div>
@@ -668,37 +746,39 @@
                                                     </div>
 
                                                     <div className="text-center py-1 border-b border-slate-50 shrink-0">
-                                                        <p className="text-[11px] font-black text-slate-400 uppercase leading-tight">LTV / CAC</p>
+                                                        <Tooltip id="ltvCac" label="LTV / CAC" className="text-[11px] font-black text-slate-400 uppercase leading-tight justify-center" />
                                                         <p className="kpi-value font-black leading-none my-0.5" style={{ color: isHealthy ? '#15803d' : '#e11d48' }}>{res.ltvCac.toFixed(2)}</p>
                                                         <p className="text-[10px] text-slate-400 font-bold uppercase mobile-hide">顧客生涯価値 ÷ 獲得コスト</p>
                                                     </div>
 
                                                     <div className="grid grid-cols-3 gap-[6px] shrink-0">
                                                         <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">月次売上</p>
+                                                            <Tooltip id="monthlyRev" label="月次売上（MRR）" className="text-[10px] font-bold text-slate-400 uppercase mb-0.5" />
                                                             <p className="text-[13px] font-black text-slate-700 leading-tight">{formatCurrency(res.monthlyRev)}</p>
                                                             {renderSummaryDiff(res.monthlyRev, baseRes.monthlyRev, false)}
                                                         </div>
                                                         <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">獲得単価(CAC)</p>
+                                                            <Tooltip id="cac" label="獲得単価(CAC)" className="text-[10px] font-bold text-slate-400 uppercase mb-0.5" />
                                                             <p className="text-[13px] font-black text-slate-700 leading-tight">{formatCurrency(res.cac)}</p>
                                                             {renderSummaryDiff(res.cac, baseRes.cac, true)}
                                                         </div>
                                                         <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
-                                                            <p className="text-[10px] font-bold text-indigo-400 uppercase mb-0.5">LTV</p>
+                                                            <Tooltip id="ltv" label="LTV" className="text-[10px] font-bold text-indigo-400 uppercase mb-0.5" />
                                                             <p className="text-[13px] font-black text-indigo-700 leading-tight">{formatCurrency(res.ltv)}</p>
                                                             {renderSummaryDiff(res.ltv, baseRes.ltv, false)}
                                                         </div>
                                                         <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">ARPU</p>
+                                                            <Tooltip id="arpu" label="ARPU" className="text-[10px] font-bold text-slate-400 uppercase mb-0.5" />
                                                             <p className="text-[13px] font-black text-slate-700 leading-tight">¥{formatNum(config.arpu)}</p>
                                                         </div>
                                                         <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">継続期間</p>
-                                                            <p className="text-[13px] font-black text-slate-700 leading-tight">{config.retention}ヶ月</p>
+                                                            <Tooltip id="unitProfit" label="1人当たり利益" className="text-[10px] font-bold text-slate-400 uppercase mb-0.5" />
+                                                            <p className={`text-[13px] font-black leading-tight ${res.unitProfit > 0 ? 'text-green-600' : res.unitProfit < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                                                                {formatCurrency(res.unitProfit)}
+                                                            </p>
                                                         </div>
                                                         <div className="bg-slate-50 p-1.5 rounded-xl flex flex-col items-center text-center">
-                                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">回収期間</p>
+                                                            <Tooltip id="payback" label="回収期間" className="text-[10px] font-bold text-slate-400 uppercase mb-0.5" />
                                                             <p className="text-[13px] font-black text-slate-700 leading-tight">{res.payback.toFixed(1)}ヶ月</p>
                                                         </div>
                                                     </div>
@@ -730,15 +810,15 @@
                                                         ) : (
                                                             <div className="space-y-2 text-center">
                                                                 <div className="flex justify-center gap-3 text-[12px] font-medium text-slate-400 flex-wrap">
-                                                                    <span>予算:<span className="text-[14px] font-black text-indigo-600 ml-0.5">{Math.round(config.adSpend / 10000)}万</span></span>
-                                                                    <span>CPI:<span className="text-[14px] font-black text-indigo-600 ml-0.5">¥{config.cpi}</span></span>
-                                                                    <span>登録率:<span className="text-[14px] font-black text-indigo-600 ml-0.5">{(config.regCvr * 100).toFixed(0)}%</span></span>
-                                                                    <span>課金転換率:<span className="text-[14px] font-black text-rose-600 ml-0.5">{(config.payRate * 100).toFixed(0)}%</span></span>
+                                                                    <Tooltip id="adSpend" className="gap-1 font-medium">予算:<span className="text-[13px] font-black text-indigo-600 ml-0.5">{Math.round(config.adSpend / 10000)}万</span></Tooltip>
+                                                                    <Tooltip id="cpi" className="gap-1 font-medium">CPI:<span className="text-[13px] font-black text-indigo-600 ml-0.5">¥{config.cpi}</span></Tooltip>
+                                                                    <Tooltip id="regCvr" className="gap-1 font-medium">登録率:<span className="text-[13px] font-black text-indigo-600 ml-0.5">{(config.regCvr * 100).toFixed(0)}%</span></Tooltip>
+                                                                    <Tooltip id="payRate" className="gap-1 font-medium">課金転換率:<span className="text-[13px] font-black text-indigo-600 ml-0.5">{(config.payRate * 100).toFixed(0)}%</span></Tooltip>
                                                                 </div>
                                                                 <div className="flex justify-center gap-3 text-[12px] font-medium text-slate-400 border-t border-slate-50 pt-1 flex-wrap">
-                                                                    <span>登録後チュート完了率:<span className="text-[14px] font-black text-indigo-500 ml-0.5">{(config.ftueRate * 100).toFixed(0)}%</span></span>
-                                                                    <span>ARPU:<span className="text-[14px] font-black text-indigo-500 ml-0.5">¥{formatNum(config.arpu)}</span></span>
-                                                                    <span>継続期間:<span className="text-[14px] font-black text-indigo-500 ml-0.5">{config.retention}ヶ月</span></span>
+                                                                    <Tooltip id="ftueRate" className="gap-1 font-medium">登録後チュート完了率:<span className="text-[13px] font-black text-indigo-600 ml-0.5">{(config.ftueRate * 100).toFixed(0)}%</span></Tooltip>
+                                                                    <Tooltip id="arpu" className="gap-1 font-medium">ARPU:<span className="text-[13px] font-black text-indigo-600 ml-0.5">¥{formatNum(config.arpu)}</span></Tooltip>
+                                                                    <Tooltip id="retention" className="gap-1 font-medium">継続期間:<span className="text-[13px] font-black text-indigo-600 ml-0.5">{config.retention}ヶ月</span></Tooltip>
                                                                 </div>
                                                             </div>
                                                         )}
@@ -790,139 +870,142 @@
                                     </div>
                                 </div>
                             </div>
-                        )}
-                    </div>
+                        )
+                        }
+                    </div >
 
                     {/* 4. Forecast Section */}
-                    <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    < div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden" >
                         <div className="p-4 cursor-pointer flex justify-between items-center hover:bg-slate-50 transition-colors" onClick={() => toggleSection('forecast')}>
                             <h2 className="section-title font-black text-slate-800 uppercase flex items-center gap-3"><TableIcon size={24} className="text-indigo-600" /> 2026年 通期成長シミュレーション</h2>
                             {sectionVisibility.forecast ? <ChevronDown size={18} /> : <ChevronRightIcon size={18} />}
                         </div>
-                        {sectionVisibility.forecast && (
-                            <div className="px-8 pb-8 flex flex-col gap-6">
-                                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 no-export">
-                                    <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm border border-slate-200 mobile-full">
-                                        {['case1', 'case2', 'case3'].map(key => (
-                                            <button key={key} onClick={() => setSelectedForecastCase(key)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all flex-1 ${selectedForecastCase === key ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{cases[key].name.split(':')[0]}</button>
-                                        ))}
-                                    </div>
-                                    <div className="flex flex-col md:flex-row flex-1 gap-4 px-2">
-                                        <div className="flex-1 space-y-1">
-                                            <div className="flex justify-between items-end">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">予算成長率 (MoM)</span>
-                                                    <span className="text-[8px] text-slate-400 font-bold leading-none">毎月の広告費が{Math.round(monthlyGrowthRate * 100)}%ずつ増加</span>
-                                                </div>
-                                                <span className="text-xs font-black text-indigo-600">{Math.round(monthlyGrowthRate * 100)}%</span>
-                                            </div>
-                                            <input type="range" min="0" max="50" step="1" value={monthlyGrowthRate * 100} onChange={e => setMonthlyGrowthRate(parseFloat(e.target.value) / 100)} className="w-full h-1 appearance-none bg-slate-200 accent-indigo-600 rounded-full" />
-                                        </div>
-                                        <div className="flex-1 space-y-1 border-l border-slate-200 pl-4">
-                                            <div className="flex justify-between items-end">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CPI悪化係数</span>
-                                                    <span className="text-[8px] text-slate-400 font-bold leading-none">予算増強時の獲得単価上昇リスク</span>
-                                                </div>
-                                                <span className="text-xs font-black text-rose-600">{Math.round(cpiScaleFactor * 100)}%</span>
-                                            </div>
-                                            <input type="range" min="0" max="100" step="1" value={cpiScaleFactor * 100} onChange={e => setCpiScaleFactor(parseFloat(e.target.value) / 100)} className="w-full h-1 appearance-none bg-slate-200 accent-rose-500 rounded-full" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="bg-indigo-900 text-white p-6 rounded-3xl relative overflow-hidden">
-                                        <ArrowUpRight className="absolute right-[-10px] top-[-10px] opacity-10" size={100} />
-                                        <p className="text-[10px] font-bold text-indigo-300 uppercase mb-1">{cases[selectedForecastCase].name} 通期売上予想</p>
-                                        <p className="text-3xl font-black">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</p>
-                                        <div className="mt-2 text-[10px] font-bold text-indigo-200 uppercase tracking-widest">ROI: {(getFullYearTotal(selectedForecastCase).roi * 100).toFixed(1)}%</div>
-                                    </div>
-                                    <div className="bg-slate-50 border border-slate-200 p-6 rounded-3xl">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">通期総投資額</p>
-                                        <p className="text-3xl font-black text-slate-800">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</p>
-                                        <div className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">利益: {formatCurrency(getFullYearTotal(selectedForecastCase).revenue - getFullYearTotal(selectedForecastCase).spend)}</div>
-                                    </div>
-                                </div>
-
-                                {/* MRR Growth Chart - Priority placement as requested */}
-                                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
-                                    <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1 mb-6">
-                                        <BarChart3 size={12} /> MRR Growth Forecast (累積効果の可視化)
-                                    </p>
-                                    <div className="h-64 w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={monthlyForecastData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                                <defs>
-                                                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} tickFormatter={(val) => `¥${(val / 1000000).toFixed(1)}M`} />
-                                                <Tooltip
-                                                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
-                                                    formatter={(value) => [`¥${Math.round(value).toLocaleString()}`, 'MRR']}
-                                                />
-                                                <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-
-                                <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 flex gap-4 items-center">
-                                    <Sparkles size={24} className="text-amber-600 shrink-0" />
-                                    <div><h4 className="text-xs font-black text-amber-900 uppercase mb-1">アドバイス</h4><p className="text-[11px] font-bold text-amber-800 leading-relaxed">{getSimulationAdvice(getFullYearTotal(selectedForecastCase))}</p></div>
-                                </div>
-                                <div className="overflow-x-auto rounded-2xl border border-slate-100 mobile-scroll-x">
-                                    <table className="w-full text-left actual-table">
-                                        <thead className="bg-slate-50 border-b border-slate-100 text-slate-500">
-                                            <tr className="uppercase font-black text-[10px]">
-                                                <th className="p-3">月度</th>
-                                                <th className="p-3 text-right">広告費</th>
-                                                <th className="p-3 text-right text-indigo-600">MRR（月次サブスク売上）</th>
-                                                <th className="p-3 text-right">DL数</th>
-                                                <th className="p-3 text-right text-rose-600">継続中</th>
-                                                <th className="p-3 text-right text-slate-400">累計</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-50">
-                                            {monthlyForecastData.map((m, i) => (
-                                                <tr key={m.month} className="hover:bg-slate-50">
-                                                    <td className="p-3 font-black">{m.month}</td>
-                                                    <td className="p-3 text-right font-mono">{formatCurrency(m.spend)}</td>
-                                                    <td className="p-3 text-right font-mono font-black text-indigo-600">{formatCurrency(m.revenue)}</td>
-                                                    <td className="p-3 text-right font-mono">{formatNum(m.installs)}</td>
-                                                    <td className="p-3 text-right font-mono text-rose-600 font-bold">{formatNum(m.paid)}</td>
-                                                    <td className="p-3 text-right font-mono text-slate-400">{formatNum(m.cumulative)}</td>
-                                                </tr>
+                        {
+                            sectionVisibility.forecast && (
+                                <div className="px-8 pb-8 flex flex-col gap-6">
+                                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 no-export">
+                                        <div className="flex gap-1 p-1 bg-white rounded-xl shadow-sm border border-slate-200 mobile-full">
+                                            {['case1', 'case2', 'case3'].map(key => (
+                                                <button key={key} onClick={() => setSelectedForecastCase(key)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase transition-all flex-1 ${selectedForecastCase === key ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50'}`}>{cases[key].name.split(':')[0]}</button>
                                             ))}
-                                        </tbody>
-                                        <tfoot className="bg-slate-900 text-white font-black">
-                                            <tr>
-                                                <td className="p-3 text-[10px] uppercase">2026年 合計</td>
-                                                <td className="p-3 text-right font-mono text-[10px]">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</td>
-                                                <td className="p-3 text-right font-mono text-[12px] text-indigo-300">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</td>
-                                                <td className="p-3 text-right font-mono text-[10px]">
-                                                    <div className="flex flex-col items-end">
-                                                        <span>{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.installs, 0))} DL</span>
-                                                        <span className="text-[8px] opacity-60">{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.regs, 0))} 登録</span>
+                                        </div>
+                                        <div className="flex flex-col md:flex-row flex-1 gap-4 px-2">
+                                            <div className="flex-1 space-y-1">
+                                                <div className="flex justify-between items-end">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">予算成長率 (MoM)</span>
+                                                        <span className="text-[8px] text-slate-400 font-bold leading-none">毎月の広告費が{Math.round(monthlyGrowthRate * 100)}%ずつ増加</span>
                                                     </div>
-                                                </td>
-                                                <td className="p-3 text-right font-mono text-[10px]" colSpan="2">
-                                                    <div className="flex flex-col items-end">
-                                                        <span>{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.cumulative, 0))} 累計課金数</span>
+                                                    <span className="text-xs font-black text-indigo-600">{Math.round(monthlyGrowthRate * 100)}%</span>
+                                                </div>
+                                                <input type="range" min="0" max="50" step="1" value={monthlyGrowthRate * 100} onChange={e => setMonthlyGrowthRate(parseFloat(e.target.value) / 100)} className="w-full h-1 appearance-none bg-slate-200 accent-indigo-600 rounded-full" />
+                                            </div>
+                                            <div className="flex-1 space-y-1 border-l border-slate-200 pl-4">
+                                                <div className="flex justify-between items-end">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">CPI悪化係数</span>
+                                                        <span className="text-[8px] text-slate-400 font-bold leading-none">予算増強時の獲得単価上昇リスク</span>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                                    <span className="text-xs font-black text-rose-600">{Math.round(cpiScaleFactor * 100)}%</span>
+                                                </div>
+                                                <input type="range" min="0" max="100" step="1" value={cpiScaleFactor * 100} onChange={e => setCpiScaleFactor(parseFloat(e.target.value) / 100)} className="w-full h-1 appearance-none bg-slate-200 accent-rose-500 rounded-full" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-indigo-900 text-white p-6 rounded-3xl relative overflow-hidden">
+                                            <ArrowUpRight className="absolute right-[-10px] top-[-10px] opacity-10" size={100} />
+                                            <p className="text-[10px] font-bold text-indigo-300 uppercase mb-1">{cases[selectedForecastCase].name} 通期売上予想</p>
+                                            <p className="text-3xl font-black">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</p>
+                                            <div className="mt-2 text-[10px] font-bold text-indigo-200 uppercase tracking-widest">ROI: {(getFullYearTotal(selectedForecastCase).roi * 100).toFixed(1)}%</div>
+                                        </div>
+                                        <div className="bg-slate-50 border border-slate-200 p-6 rounded-3xl">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">通期総投資額</p>
+                                            <p className="text-3xl font-black text-slate-800">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</p>
+                                            <div className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">利益: {formatCurrency(getFullYearTotal(selectedForecastCase).revenue - getFullYearTotal(selectedForecastCase).spend)}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* MRR Growth Chart - Priority placement as requested */}
+                                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                                        <p className="text-[10px] font-black text-indigo-500 uppercase flex items-center gap-1 mb-6">
+                                            <BarChart3 size={12} /> MRR Growth Forecast (累積効果の可視化)
+                                        </p>
+                                        <div className="h-64 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={monthlyForecastData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} tickFormatter={(val) => `¥${(val / 1000000).toFixed(1)}M`} />
+                                                    <Tooltip
+                                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: 'bold' }}
+                                                        formatter={(value) => [`¥${Math.round(value).toLocaleString()}`, 'MRR']}
+                                                    />
+                                                    <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorRev)" />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 bg-amber-50 rounded-2xl border border-amber-100 flex gap-4 items-center">
+                                        <Sparkles size={24} className="text-amber-600 shrink-0" />
+                                        <div><h4 className="text-xs font-black text-amber-900 uppercase mb-1">アドバイス</h4><p className="text-[11px] font-bold text-amber-800 leading-relaxed">{getSimulationAdvice(getFullYearTotal(selectedForecastCase))}</p></div>
+                                    </div>
+                                    <div className="overflow-x-auto rounded-2xl border border-slate-100 mobile-scroll-x">
+                                        <table className="w-full text-left actual-table">
+                                            <thead className="bg-slate-50 border-b border-slate-100 text-slate-500">
+                                                <tr className="uppercase font-black text-[10px]">
+                                                    <th className="p-3">月度</th>
+                                                    <th className="p-3 text-right">広告費</th>
+                                                    <th className="p-3 text-right text-indigo-600">MRR（月次サブスク売上）</th>
+                                                    <th className="p-3 text-right">DL数</th>
+                                                    <th className="p-3 text-right text-rose-600">継続中</th>
+                                                    <th className="p-3 text-right text-slate-400">累計</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50">
+                                                {monthlyForecastData.map((m, i) => (
+                                                    <tr key={m.month} className="hover:bg-slate-50">
+                                                        <td className="p-3 font-black">{m.month}</td>
+                                                        <td className="p-3 text-right font-mono">{formatCurrency(m.spend)}</td>
+                                                        <td className="p-3 text-right font-mono font-black text-indigo-600">{formatCurrency(m.revenue)}</td>
+                                                        <td className="p-3 text-right font-mono">{formatNum(m.installs)}</td>
+                                                        <td className="p-3 text-right font-mono text-rose-600 font-bold">{formatNum(m.paid)}</td>
+                                                        <td className="p-3 text-right font-mono text-slate-400">{formatNum(m.cumulative)}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                            <tfoot className="bg-slate-900 text-white font-black">
+                                                <tr>
+                                                    <td className="p-3 text-[10px] uppercase">2026年 合計</td>
+                                                    <td className="p-3 text-right font-mono text-[10px]">{formatCurrency(getFullYearTotal(selectedForecastCase).spend)}</td>
+                                                    <td className="p-3 text-right font-mono text-[12px] text-indigo-300">{formatCurrency(getFullYearTotal(selectedForecastCase).revenue)}</td>
+                                                    <td className="p-3 text-right font-mono text-[10px]">
+                                                        <div className="flex flex-col items-end">
+                                                            <span>{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.installs, 0))} DL</span>
+                                                            <span className="text-[8px] opacity-60">{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.regs, 0))} 登録</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3 text-right font-mono text-[10px]" colSpan="2">
+                                                        <div className="flex flex-col items-end">
+                                                            <span>{formatNum(monthlyForecastData.reduce((acc, m) => acc + m.cumulative, 0))} 累計課金数</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )
+                        }
+                    </div >
                     <div className="text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest pb-12">SOULRiZA Marketing Simulator v6.x Premium</div>
                 </div >
             );
